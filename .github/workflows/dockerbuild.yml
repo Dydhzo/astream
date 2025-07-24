@@ -1,0 +1,70 @@
+name: Docker Image CI
+
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    # Étape 1: Récupération du code
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Get version from core.py
+      id: get-version
+      run: |
+        VERSION=$(grep '"version":' astream/api/core.py | sed -n 's/.*"version": "\([^"]*\)".*/\1/p')
+        echo "Extracted version: $VERSION"
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+    # Étape 2: Extraction des métadonnées Docker
+    - name: Docker meta
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: |
+          dydhzo/astream
+          ghcr.io/${{ github.repository }}
+        tags: |
+          type=raw,value=${{ steps.get-version.outputs.VERSION }},enable={{is_default_branch}}
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    # Étape 3: Mise en place de QEMU
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    # Étape 4: Mise en place de Docker Buildx
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    # Étape 5: Connexion à Docker Hub
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    # Étape 6: Connexion à GitHub Container Registry
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    # Étape 7: Construction et push de l'image
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
