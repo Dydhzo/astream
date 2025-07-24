@@ -1,0 +1,187 @@
+# Basé sur le projet
+*.db
+data/
+*.sqlite
+*.sqlite3
+
+# Fichiers compilés / optimisés / DLL
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Extensions C
+*.so
+
+# Distribution / Empaquetage
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+#  Habituellement, ces fichiers sont écrits par un script python à partir d'un modèle
+#  avant que PyInstaller ne construise l'exécutable, afin d'y injecter la date/d'autres informations.
+*.manifest
+*.spec
+
+# Journaux d'installation
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Rapports de test unitaire / couverture
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Traductions
+*.mo
+*.pot
+
+# Trucs Django :
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Trucs Flask :
+instance/
+.webassets-cache
+
+# Trucs Scrapy :
+.scrapy
+
+# Documentation Sphinx
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+#   Pour une bibliothèque ou un paquet, vous pourriez vouloir ignorer ces fichiers car le code est
+#   destiné à fonctionner dans plusieurs environnements ; sinon, archivez-les :
+# .python-version
+
+# pipenv
+#   Selon pypa/pipenv#598, il est recommandé d'inclure Pipfile.lock dans le contrôle de version.
+#   Cependant, en cas de collaboration, si vous avez des dépendances spécifiques à une plateforme ou des dépendances
+#   n'ayant pas de support multiplateforme, pipenv peut installer des dépendances qui ne fonctionnent pas, ou ne pas
+#   installer toutes les dépendances nécessaires.
+#Pipfile.lock
+
+# UV
+#   Similaire à Pipfile.lock, il est généralement recommandé d'inclure uv.lock dans le contrôle de version.
+#   Ceci est particulièrement recommandé pour les paquets binaires afin d'assurer la reproductibilité, et est plus
+#   couramment ignoré pour les bibliothèques.
+uv.lock
+
+# poetry
+#   Similaire à Pipfile.lock, il est généralement recommandé d'inclure poetry.lock dans le contrôle de version.
+#   Ceci est particulièrement recommandé pour les paquets binaires afin d'assurer la reproductibilité, et est plus
+#   couramment ignoré pour les bibliothèques.
+#   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
+#poetry.lock
+
+# pdm
+#   Similaire à Pipfile.lock, il est généralement recommandé d'inclure pdm.lock dans le contrôle de version.
+#pdm.lock
+#   pdm stocke les configurations à l'échelle du projet dans .pdm.toml, mais il est recommandé de ne pas l'inclure
+#   dans le contrôle de version.
+#   https://pdm.fming.dev/latest/usage/project/#working-with-version-control
+.pdm.toml
+.pdm-python
+.pdm-build/
+
+# PEP 582 ; utilisé par ex. github.com/David-OConnor/pyflow et github.com/pdm-project/pdm
+__pypackages__/
+
+# Trucs Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Fichiers analysés SageMath
+*.sage.py
+
+# Environnements
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Paramètres de projet Spyder
+.spyderproject
+.spyproject
+
+# Paramètres de projet Rope
+.ropeproject
+
+# Documentation mkdocs
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Vérificateur de type Pyre
+.pyre/
+
+# Analyseur de type statique pytype
+.pytype/
+
+# Symboles de débogage Cython
+cython_debug/
+
+# PyCharm
+#  Le modèle spécifique à JetBrains est maintenu dans un fichier JetBrains.gitignore séparé qui peut
+#  être trouvé à https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
+#  et peut être ajouté au gitignore global ou fusionné dans ce fichier. Pour une option plus
+#  radicale (non recommandée), vous pouvez décommenter ce qui suit pour ignorer tout le dossier .idea.
+#.idea/
+
+# Trucs Ruff :
+.ruff_cache/
+
+# Fichier de configuration PyPI
+.pypirc
+edit.py
+
+# Docker et développement
+.dockerignore
+docker-compose.override.yml
+.DS_Store
+Thumbs.db
