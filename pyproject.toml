@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "astream"
+version = "1.0.0"
+description = "AStream – Addon non officiel pour accéder au contenu d'Anime-Sama"
+requires-python = ">=3.11"
+dependencies = [
+    "aiosqlite",
+    "beautifulsoup4",
+    "databases",
+    "fastapi",
+    "gunicorn",
+    "jinja2",
+    "loguru",
+    "orjson",
+    "pydantic-settings",
+    "uvicorn",
+    "httpx",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["astream*"]

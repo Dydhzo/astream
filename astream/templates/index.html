@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ webConfig.ADDON_NAME }} – Addon Stremio pour Anime-Sama</title>
+    <meta content="{{ webConfig.ADDON_NAME }}" property="og:title" />
+    <meta content="{{ webConfig.ADDON_NAME }} – Addon non officiel pour Stremio" property="og:description" />
+    <meta content="#7c3aed" data-react-helmet="true" name="theme-color" />
+    <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/Dydhzo/astream/refs/heads/main/astream/assets/astream-logo.jpg">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.400.0/lucide.min.css">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #7c3aed;
+            --primary-dark: #5b21b6;
+            --secondary: #06b6d4;
+            --accent: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg-dark: #0a0a0a;
+            --bg-secondary: #111111;
+            --bg-card: #1a1a1a;
+            --bg-elevated: #262626;
+            --text-primary: #ffffff;
+            --text-secondary: #a3a3a3;
+            --text-muted: #737373;
+            --border: #404040;
+            --border-hover: #525252;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.6);
+            --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            --gradient-accent: linear-gradient(135deg, var(--accent) 0%, var(--secondary) 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: auto; /* Disable smooth scrolling globally */
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+            padding: 0 2rem;
+        }
+
+        .nav-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1400px;
+            margin: 0 auto;
+            height: 70px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 800;
+            font-size: 1.5rem;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo img {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .nav-item {
+            padding: 8px 16px;
+            border-radius: 12px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--gradient-primary);
+            color: white;
+        }
+
+        /* Main Layout */
+        .main {
+            margin-top: 70px;
+            min-height: calc(100vh - 70px);
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 2rem;
+        }
+        
+        .main.with-sidebar {
+            grid-template-columns: 1fr 350px;
+        }
+
+        .content {
+            min-height: calc(100vh - 140px);
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 90px;
+            height: fit-content;
+        }
+
+        /* Pages */
+        .page {
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Home Page */
+        .hero {
+            text-align: center;
+            padding: 4rem 0;
+            background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.1) 0%, transparent 50%);
+            border-radius: 24px;
+            margin-bottom: 3rem;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+
+        .btn.large {
+            padding: 16px 32px;
+            font-size: 1.1rem;
+            min-height: 56px;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Warning Cards */
+        .warnings {
+            display: grid;
+            gap: 1rem;
+            margin-bottom: 3rem;
+        }
+
+        .warning-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .warning-card.danger {
+            border: 2px solid var(--danger);
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .warning-card.warning {
+            border: 2px solid var(--warning);
+            background: rgba(245, 158, 11, 0.05);
+        }
+
+        .warning-card.info {
+            border: 2px solid var(--secondary);
+            background: rgba(6, 182, 212, 0.05);
+        }
+
+        .warning-icon {
+            font-size: 1.2rem;
+            margin-top: 2px;
+        }
+
+        .warning-content h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .warning-content p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Features Grid */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-2px);
+        }
+
+        .feature-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 1rem;
+        }
+
+        .feature-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--gradient-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .feature-card h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Info Page */
+        .info-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .info-section h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .copy-section-btn {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 4px 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            font-size: 0.8rem;
+        }
+        
+        .copy-section-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .info-section h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 1.5rem 0 0.8rem 0;
+            color: var(--primary);
+        }
+
+        .info-section ul {
+            list-style: none;
+            margin-left: 0;
+        }
+
+        .info-section li {
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 0.95rem;
+        }
+
+        .info-section li::before {
+            content: "•";
+            color: var(--primary);
+            font-weight: bold;
+            margin-top: 2px;
+        }
+
+        .content-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .content-table th,
+        .content-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .content-table th {
+            background: var(--bg-elevated);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .content-table td {
+            color: var(--text-secondary);
+        }
+
+        /* Config Sidebar */
+        .config-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            position: sticky;
+            top: 90px;
+        }
+
+        .config-panel h3 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 0;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .radio-option {
+            position: relative;
+        }
+
+        .radio-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+        }
+
+        .radio-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: var(--bg-elevated);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .radio-option input[type="radio"]:checked + .radio-label {
+            background: var(--gradient-primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .radio-option:hover .radio-label {
+            border-color: var(--border-hover);
+        }
+
+        /* Order Selection */
+        .order-selection {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            display: none;
+        }
+
+        .order-selection.active {
+            display: block;
+        }
+
+        .order-list {
+            list-style: none;
+            margin: 0;
+        }
+
+        .order-item {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            user-select: none;
+            font-weight: 500;
+        }
+
+        .order-item span {
+            flex-grow: 1;
+            text-align: center;
+        }
+
+        .order-item:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .order-controls {
+            display: flex;
+            gap: 4px;
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .order-btn {
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            min-height: 32px;
+        }
+
+        .order-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        .order-btn:active {
+            transform: translateY(0);
+        }
+
+        .order-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .order-btn:disabled:hover {
+            background: var(--bg-dark);
+            color: var(--text-muted);
+            border-color: var(--border);
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            padding: 2rem;
+            text-align: center;
+            margin-top: 4rem;
+        }
+
+        .footer p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 1024px) {
+            .main {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .sidebar {
+                position: relative;
+                top: 0;
+            }
+
+            .nav-container {
+                padding: 0 1rem;
+            }
+
+            .nav-menu {
+                gap: 0.25rem;
+            }
+
+            .nav-item {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+            }
+
+            .main {
+                padding: 1rem;
+            }
+
+            .nav {
+                padding: 0 1rem;
+            }
+
+            .config-panel {
+                padding: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .nav-item span {
+                display: none;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .logo span {
+                display: none;
+            }
+
+            .warning-card {
+                padding: 1rem;
+            }
+
+            .feature-card {
+                padding: 1rem;
+            }
+
+            .info-section {
+                padding: 1.5rem;
+            }
+
+            .order-item {
+                padding: 16px 20px;
+                font-size: 1.1rem;
+            }
+
+            .order-btn {
+                min-width: 44px;
+                min-height: 44px;
+                font-size: 1.2rem;
+            }
+
+            .order-selection h3 {
+                font-size: 1.1rem;
+            }
+
+            .order-selection p {
+                font-size: 0.9rem;
+            }
+        }
+
+        
+        /* Success/Error States */
+        .success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 1rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-container">
+            <div class="logo">
+                <img src="https://raw.githubusercontent.com/Dydhzo/astream/refs/heads/main/astream/assets/astream-logo-sans-fond.png" alt="{{ webConfig.ADDON_NAME }}">
+                <span>{{ webConfig.ADDON_NAME }}</span>
+            </div>
+            <div class="nav-menu">
+                <button class="nav-item active" data-page="home">
+                    <i data-lucide="home"></i>
+                    <span>Accueil</span>
+                </button>
+                <button class="nav-item" data-page="info">
+                    <i data-lucide="info"></i>
+                    <span>Informations</span>
+                </button>
+                <button class="nav-item" data-page="config">
+                    <i data-lucide="settings"></i>
+                    <span>Configuration</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="content">
+            <!-- Home Page -->
+            <div class="page active" id="home">
+                <div class="hero">
+                    <h1>{{ webConfig.ADDON_NAME }}</h1>
+                    <p>Addon non officiel pour Stremio permettant de streamer les animes depuis Anime-Sama</p>
+                    <div class="hero-buttons">
+                        <a href="https://github.com/Dydhzo/astream" target="_blank" class="btn btn-primary">
+                            <i data-lucide="github"></i>
+                            Voir sur GitHub
+                        </a>
+                        <button class="btn btn-secondary" onclick="showPage('config')">
+                            <i data-lucide="settings"></i>
+                            Configurer l'addon
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Custom Header HTML -->
+                {% if CUSTOM_HEADER_HTML %}
+                <div class="warnings">
+                    <div class="warning-card info">
+                        <div class="warning-icon">ℹ️</div>
+                        <div class="warning-content">
+                            <h3>Information</h3>
+                            <div style="color: var(--text-secondary);">
+                                {{ CUSTOM_HEADER_HTML|safe }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="warnings">
+                    <div class="warning-card" style="border: 2px solid var(--accent); background: rgba(16, 185, 129, 0.05);">
+                        <div class="warning-icon">🐍</div>
+                        <div class="warning-content">
+                            <h3>Projet Open Source</h3>
+                            <p>Le code source est disponible sur GitHub sous licence MIT.</p>
+                        </div>
+                    </div>
+                    <div class="warning-card warning">
+                        <div class="warning-icon">⚖️</div>
+                        <div class="warning-content">
+                            <h3>Responsabilité de l'utilisateur</h3>
+                            <p>Utilisez cet addon à vos propres risques. Vérifiez la légalité dans votre juridiction.</p>
+                        </div>
+                    </div>
+                    <div class="warning-card danger">
+                        <div class="warning-icon">⚠️</div>
+                        <div class="warning-content">
+                            <h3>Non affilié à Anime-Sama</h3>
+                            <p>Cet addon est un projet indépendant. Nous ne sommes pas affiliés au site Anime-Sama.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Info Page -->
+            <div class="page" id="info">
+                <div class="info-section" id="organisation">
+                    <h2>
+                        <i data-lucide="folder"></i>
+                        Organisation des Contenus
+                        <button class="copy-section-btn" onclick="copySection('organisation', event)" title="Copier le lien vers cette section">
+                            <i data-lucide="copy"></i>
+                        </button>
+                    </h2>
+                    <table class="content-table">
+                        <thead>
+                            <tr>
+                                <th>Type de Contenu</th>
+                                <th>Numéro de Saison</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Saisons normales</td>
+                                <td>1, 2, 3...</td>
+                                <td>Numérotation standard</td>
+                            </tr>
+                            <tr>
+                                <td>Sous-saisons</td>
+                                <td>4-2, 4-3...</td>
+                                <td>Intégrées dans la saison principale</td>
+                            </tr>
+                            <tr>
+                                <td>Films</td>
+                                <td>998</td>
+                                <td>Tous les films liés à l'anime</td>
+                            </tr>
+                            <tr>
+                                <td>Hors-série</td>
+                                <td>999</td>
+                                <td>Épisodes hors-série</td>
+                            </tr>
+                            <tr>
+                                <td>Spéciaux/OAV</td>
+                                <td>0</td>
+                                <td>OAV et épisodes spéciaux</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="info-section" id="lecteurs">
+                    <h2>
+                        <i data-lucide="tv"></i>
+                        Lecteurs Vidéo
+                        <button class="copy-section-btn" onclick="copySection('lecteurs', event)" title="Copier le lien vers cette section">
+                            <i data-lucide="copy"></i>
+                        </button>
+                    </h2>
+                    <h3>Lecteurs Supportés</h3>
+                    <ul>
+                        <li><strong>Sibnet :</strong> Extraction avec contournement de protection</li>
+                        <li><strong>Vidmoly :</strong> Support complet</li>
+                        <li><strong>Sendvid :</strong> Support complet</li>
+                        <li><strong>Oneupload :</strong> Support complet</li>
+                    </ul>
+                    
+                    <h3>Lecteurs Non Supportés</h3>
+                    <ul>
+                        <li><strong>VK :</strong> Protection complexe</li>
+                        <li><strong>Moveanime :</strong> Protection complexe</li>
+                        <li><strong>Smoothanime :</strong> Protection complexe</li>
+                    </ul>
+                    
+                    <p style="margin-top: 1rem; padding: 12px; background: var(--bg-elevated); border-radius: 8px; border-left: 3px solid var(--secondary); color: var(--text-secondary); font-size: 0.9rem;">
+                        <strong>ℹ️ Note :</strong> D'autres lecteurs peuvent fonctionner mais n'ont pas été testés officiellement. Certains lecteurs peuvent également ne pas fonctionner.
+                    </p>
+                    
+                    <p style="margin-top: 1rem; padding: 12px; background: var(--bg-elevated); border-radius: 8px; border-left: 3px solid var(--warning); color: var(--text-secondary); font-size: 0.9rem;">
+                        <strong>📝 Note :</strong> Si vous voyez un lecteur sur Anime-Sama qui n'apparaît pas dans l'addon, c'est soit un lecteur non supporté, soit un domaine exclu de votre configuration.
+                    </p>
+                    
+                    <h3>Domaines Actuellement Exclus</h3>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin: 1rem 0;">
+                        {% if EXCLUDED_DOMAINS %}
+                            {% for domain in EXCLUDED_DOMAINS.split(',') %}
+                            <span style="
+                                background: var(--danger);
+                                color: white;
+                                padding: 6px 12px;
+                                border-radius: 20px;
+                                font-size: 0.85rem;
+                                font-weight: 500;
+                                font-family: monospace;
+                            ">{{ domain.strip() }}</span>
+                            {% endfor %}
+                        {% else %}
+                            <span style="
+                                background: var(--accent);
+                                color: white;
+                                padding: 6px 12px;
+                                border-radius: 20px;
+                                font-size: 0.85rem;
+                                font-weight: 500;
+                            ">Aucun domaine exclu</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Config Page -->
+            <div class="page" id="config">
+                <div class="info-section">
+                    <h2>
+                        <i data-lucide="settings"></i>
+                        Configuration de l'Addon
+                    </h2>
+                    
+                    <h3 style="color: var(--primary);">Préférence de langue</h3>
+                    <form id="configForm">
+                        <div class="form-group">
+                            <div class="radio-group">
+                                <div class="radio-option">
+                                    <input type="radio" id="langAll" name="language" value="Tout" checked>
+                                    <label for="langAll" class="radio-label">
+                                        <i data-lucide="globe"></i>
+                                        Tout afficher
+                                    </label>
+                                </div>
+                                <div class="radio-option">
+                                    <input type="radio" id="langVOSTFR" name="language" value="VOSTFR">
+                                    <label for="langVOSTFR" class="radio-label">
+                                        <i data-lucide="subtitles"></i>
+                                        VOSTFR uniquement
+                                    </label>
+                                </div>
+                                <div class="radio-option">
+                                    <input type="radio" id="langVF" name="language" value="VF">
+                                    <label for="langVF" class="radio-label">
+                                        <i data-lucide="volume-2"></i>
+                                        VF uniquement
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="order-selection" id="orderSelection">
+                                <h3 style="color: var(--primary); margin-bottom: 0.5rem;">Ordre de priorité des langues</h3>
+                                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Utilisez les boutons pour réorganiser l'ordre d'apparition des streams</p>
+                                <ul class="order-list" id="orderList">
+                                    <li class="order-item" data-lang="VOSTFR">
+                                        <span>VOSTFR</span>
+                                        <div class="order-controls">
+                                            <button class="order-btn move-down" title="Descendre">
+                                                <i data-lucide="chevron-down"></i>
+                                            </button>
+                                        </div>
+                                    </li>
+                                    <li class="order-item" data-lang="VF">
+                                        <span>VF</span>
+                                        <div class="order-controls">
+                                            <button class="order-btn move-up" title="Monter">
+                                                <i data-lucide="chevron-up"></i>
+                                            </button>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Séparateur -->
+                        <hr style="border: none; height: 1px; background: var(--border); margin: 2rem 0 2rem 0;">
+                        
+                        <div class="action-buttons" style="display: flex; justify-content: center; gap: 1rem;">
+                            <button type="button" class="btn btn-primary large" id="installBtn">
+                                <i data-lucide="download"></i>
+                                Installer sur Stremio
+                            </button>
+                            <button type="button" class="btn btn-secondary large" id="copyBtn">
+                                <i data-lucide="copy"></i>
+                                Copier le lien
+                            </button>
+                        </div>
+
+                        <div class="success" id="successMessage">
+                            <i data-lucide="check-circle"></i>
+                            Lien copié dans le presse-papiers !
+                        </div>
+                        <div class="error" id="errorMessage">
+                            <i data-lucide="x-circle"></i>
+                            Erreur lors de la copie du lien.
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>Fait avec ❤️ pour la communauté anime française</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Navigation
+        function showPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // Show selected page
+            document.getElementById(pageId).classList.add('active');
+            
+            // Update nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            document.querySelector(`[data-page="${pageId}"]`).classList.add('active');
+            
+            // Scroll to top of page when changing pages
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+            
+            // Update URL hash
+            if (pageId === 'home') {
+                window.history.replaceState(null, null, window.location.pathname);
+            } else {
+                window.history.replaceState(null, null, `#${pageId}`);
+            }
+        }
+
+        // Nav click handlers
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const pageId = item.dataset.page;
+                showPage(pageId);
+            });
+        });
+
+        // Language selection
+        document.querySelectorAll('input[name="language"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                const orderSelection = document.getElementById('orderSelection');
+                if (radio.value === 'Tout') {
+                    orderSelection.classList.add('active');
+                } else {
+                    orderSelection.classList.remove('active');
+                }
+            });
+        });
+
+        // Order management with buttons
+        function initializeOrderButtons() {
+            function updateButtons() {
+                const items = document.querySelectorAll('.order-item');
+                items.forEach((item, index) => {
+                    const controls = item.querySelector('.order-controls');
+                    controls.innerHTML = '';
+                    
+                    // Add appropriate buttons based on position
+                    if (items.length === 2) {
+                        // With only 2 items, each has one button
+                        if (index === 1) {
+                            // Second item: button to go up (swap to first position)  
+                            const upBtn = document.createElement('button');
+                            upBtn.className = 'order-btn move-up';
+                            upBtn.title = 'Passer en 1ère position';
+                            upBtn.innerHTML = '<i data-lucide="arrow-up"></i>';
+                            controls.appendChild(upBtn);
+                        } else {
+                            // First item: button to go down (swap to second position)
+                            const downBtn = document.createElement('button');
+                            downBtn.className = 'order-btn move-down'; 
+                            downBtn.title = 'Passer en 2ème position';
+                            downBtn.innerHTML = '<i data-lucide="arrow-down"></i>';
+                            controls.appendChild(downBtn);
+                        }
+                    } else {
+                        // For more than 2 items (future-proof)
+                        if (index === 0) {
+                            // First item: can only go down
+                            const downBtn = document.createElement('button');
+                            downBtn.className = 'order-btn move-down';
+                            downBtn.title = 'Descendre';
+                            downBtn.innerHTML = '<i data-lucide="chevron-down"></i>';
+                            controls.appendChild(downBtn);
+                        } else if (index === items.length - 1) {
+                            // Last item: can only go up
+                            const upBtn = document.createElement('button');
+                            upBtn.className = 'order-btn move-up';
+                            upBtn.title = 'Monter';
+                            upBtn.innerHTML = '<i data-lucide="chevron-up"></i>';
+                            controls.appendChild(upBtn);
+                        } else {
+                            // Middle items: can go both ways
+                            const upBtn = document.createElement('button');
+                            upBtn.className = 'order-btn move-up';
+                            upBtn.title = 'Monter';
+                            upBtn.innerHTML = '<i data-lucide="chevron-up"></i>';
+                            
+                            const downBtn = document.createElement('button');
+                            downBtn.className = 'order-btn move-down';
+                            downBtn.title = 'Descendre';
+                            downBtn.innerHTML = '<i data-lucide="chevron-down"></i>';
+                            
+                            controls.appendChild(upBtn);
+                            controls.appendChild(downBtn);
+                        }
+                    }
+                });
+                
+                // Re-init lucide icons
+                if (window.lucide) {
+                    lucide.createIcons();
+                }
+                
+                // Add event listeners
+                addButtonListeners();
+            }
+            
+            function addButtonListeners() {
+                document.querySelectorAll('.move-up').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const item = btn.closest('.order-item');
+                        const prevItem = item.previousElementSibling;
+                        if (prevItem) {
+                            item.parentNode.insertBefore(item, prevItem);
+                            updateButtons();
+                        }
+                    });
+                });
+                
+                document.querySelectorAll('.move-down').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const item = btn.closest('.order-item');
+                        const nextItem = item.nextElementSibling;
+                        if (nextItem) {
+                            item.parentNode.insertBefore(nextItem, item);
+                            updateButtons();
+                        }
+                    });
+                });
+            }
+            
+            // Initial setup
+            updateButtons();
+        }
+
+        // Initialize order buttons
+        initializeOrderButtons();
+
+        // Configuration functions
+        function getConfig() {
+            const formData = new FormData(document.getElementById('configForm'));
+            const config = {};
+            
+            for (let [key, value] of formData.entries()) {
+                config[key] = value;
+            }
+            
+            // Add language order if "Tout" is selected
+            if (config.language === 'Tout') {
+                const orderItems = document.querySelectorAll('.order-item');
+                config.languageOrder = Array.from(orderItems).map(item => item.dataset.lang).join(',');
+            }
+            
+            return config;
+        }
+
+        function getManifestUrl() {
+            const config = getConfig();
+            const baseUrl = window.location.origin;
+            
+            if (Object.keys(config).length === 1 && config.language === 'Tout') {
+                return `${baseUrl}/manifest.json`;
+            }
+            
+            const configStr = btoa(JSON.stringify(config));
+            return `${baseUrl}/${configStr}/manifest.json`;
+        }
+
+        // Install button
+        document.getElementById('installBtn').addEventListener('click', () => {
+            const manifestUrl = getManifestUrl();
+            const stremioUrl = `stremio://${manifestUrl}`;
+            window.open(stremioUrl, '_blank');
+        });
+
+        // Copy button
+        document.getElementById('copyBtn').addEventListener('click', async () => {
+            const manifestUrl = getManifestUrl();
+            const successMessage = document.getElementById('successMessage');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            try {
+                await navigator.clipboard.writeText(manifestUrl);
+                successMessage.style.display = 'block';
+                errorMessage.style.display = 'none';
+                
+                setTimeout(() => {
+                    successMessage.style.display = 'none';
+                }, 3000);
+            } catch (err) {
+                errorMessage.style.display = 'block';
+                successMessage.style.display = 'none';
+                
+                setTimeout(() => {
+                    errorMessage.style.display = 'none';
+                }, 3000);
+            }
+        });
+
+        // Initialize order selection visibility
+        document.getElementById('orderSelection').classList.add('active');
+        
+        // Perfect scroll to section function - completely invisible
+        function scrollToSection(sectionId) {
+            const element = document.getElementById(sectionId);
+            if (!element) return;
+            
+            // Create white overlay to hide scrolling completely
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: var(--bg-dark);
+                z-index: 99999;
+                opacity: 1;
+                transition: opacity 0.2s ease;
+            `;
+            document.body.appendChild(overlay);
+            
+            // Wait for page transition to complete
+            setTimeout(() => {
+                // Calculate position accounting for fixed header
+                const navHeight = 70;
+                const extraPadding = 30;
+                const targetPosition = element.offsetTop - navHeight - extraPadding;
+                
+                // Instant jump to position
+                document.documentElement.scrollTop = Math.max(0, targetPosition);
+                document.body.scrollTop = Math.max(0, targetPosition);
+                
+                // Remove overlay after positioning
+                setTimeout(() => {
+                    overlay.style.opacity = '0';
+                    setTimeout(() => {
+                        if (overlay.parentNode) {
+                            document.body.removeChild(overlay);
+                        }
+                    }, 200);
+                }, 50);
+            }, 100);
+        }
+        
+        // Handle URL hash on page load
+        function initializeFromHash() {
+            const hash = window.location.hash.slice(1); // Remove #
+            if (hash === 'info' || hash === 'organisation' || hash === 'lecteurs') {
+                showPage('info');
+                // Scroll to specific section if it's an anchor
+                if (hash === 'organisation' || hash === 'lecteurs') {
+                    scrollToSection(hash);
+                }
+            } else if (hash === 'config') {
+                showPage('config');
+            } else {
+                showPage('home');
+            }
+        }
+        
+        // Handle browser back/forward buttons
+        window.addEventListener('popstate', initializeFromHash);
+        
+        // Initialize page based on hash
+        initializeFromHash();
+        
+        // Copy section URL function
+        function copySection(sectionId, event) {
+            const url = `${window.location.origin}${window.location.pathname}#${sectionId}`;
+            
+            // Try modern clipboard API first
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url)
+                    .then(() => {
+                        showCopySuccess(event.target);
+                        showToast('✅ Lien copié dans le presse-papiers !');
+                    })
+                    .catch(() => {
+                        // Fallback to legacy method
+                        copyWithFallback(url, event.target);
+                    });
+            } else {
+                // Use fallback method directly
+                copyWithFallback(url, event.target);
+            }
+        }
+        
+        // Fallback copy method
+        function copyWithFallback(text, target) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showCopySuccess(target);
+                    showToast('✅ Lien copié dans le presse-papiers !');
+                } else {
+                    throw new Error('execCommand failed');
+                }
+            } catch (err) {
+                console.error('Erreur copie:', err);
+                showToast('❌ Impossible de copier le lien', true);
+                // Show manual copy option
+                prompt('Copiez ce lien manuellement :', text);
+            } finally {
+                document.body.removeChild(textArea);
+            }
+        }
+        
+        // Show copy success feedback
+        function showCopySuccess(target) {
+            const button = target.closest('button');
+            const originalHTML = button.innerHTML;
+            
+            button.style.background = 'var(--accent)';
+            button.style.color = 'white';
+            button.style.borderColor = 'var(--accent)';
+            button.innerHTML = '<i data-lucide="check"></i>';
+            
+            // Re-initialize icons for the check mark
+            lucide.createIcons();
+            
+            setTimeout(() => {
+                button.style.background = '';
+                button.style.color = '';
+                button.style.borderColor = '';
+                button.innerHTML = originalHTML;
+                lucide.createIcons();
+            }, 1500);
+        }
+        
+        // Toast notification function
+        function showToast(message, isError = false) {
+            // Remove existing toasts
+            const existingToasts = document.querySelectorAll('.toast-notification');
+            existingToasts.forEach(toast => toast.remove());
+            
+            const toast = document.createElement('div');
+            toast.className = 'toast-notification';
+            toast.style.cssText = `
+                position: fixed;
+                top: 90px;
+                right: 20px;
+                background: ${isError ? 'var(--danger)' : 'var(--accent)'};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 10px;
+                font-size: 0.95rem;
+                font-weight: 500;
+                z-index: 10000;
+                box-shadow: var(--shadow-lg);
+                animation: none;
+                max-width: 300px;
+                word-wrap: break-word;
+            `;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                if (toast && toast.parentNode) {
+                    toast.style.opacity = '0';
+                    setTimeout(() => {
+                        if (toast && toast.parentNode) {
+                            document.body.removeChild(toast);
+                        }
+                    }, 400);
+                }
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

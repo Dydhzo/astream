@@ -1,0 +1,14 @@
+services:
+  astream:
+    image: dydhzo/astream:latest
+    container_name: astream
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - astream:/data
+
+volumes:
+  astream:
