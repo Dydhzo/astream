@@ -20,16 +20,16 @@ def filter_excluded_domains(urls: List[str]) -> List[str]:
             excluded = False
             for domain in excluded_list:
                 if domain in url:
-                    logger.debug(f"🔍 DEBUG: EXCLUDED {url} (domaine: {domain})")
+                    logger.log("DEBUG", f"EXCLUDED {url} (domaine: {domain})")
                     excluded = True
                     break
             
             if not excluded:
                 filtered_urls.append(url)
         
-        logger.debug(f"🔍 DEBUG: {len(urls) - len(filtered_urls)} URLs filtrées selon EXCLUDED_DOMAIN")
+        logger.log("DEBUG", f"{len(urls) - len(filtered_urls)} URLs filtrées selon EXCLUDED_DOMAIN")
         return filtered_urls
         
     except Exception as e:
-        logger.warning(f"⚠️ WARNING: Erreur filtrage domaine: {e}")
+        logger.log("WARNING", f"Erreur filtrage domaine: {e}")
         return urls

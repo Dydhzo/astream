@@ -7,24 +7,24 @@ from astream.config.app_settings import settings
 
 
 class AnimeSamaPlanning(BaseScraper):
-    """Vérifie le planning pour déterminer les animes en cours."""
+    """Vérifie le planning pour déterminer les anime en cours."""
     
     def __init__(self, client):
-        super().__init__(client, "https://anime-sama.fr")
-        self.planning_url = "https://anime-sama.fr/planning/"
+        super().__init__(client, settings.ANIMESAMA_URL)
+        self.planning_url = f"{settings.ANIMESAMA_URL}/planning/"
     
-    async def get_current_planning_animes(self) -> Set[str]:
-        """Récupère les animes actuellement dans le planning."""
+    async def get_current_planning_anime(self) -> Set[str]:
+        """Récupère les anime actuellement dans le planning."""
         cached_planning = await get_metadata_from_cache("as:anime_planning")
         if cached_planning:
-            logger.debug(f"⚡ PERFORMANCE: Planning récupéré depuis le cache")
+            logger.log("PERFORMANCE", f"Planning récupéré depuis le cache")
             return set(cached_planning.get("anime_slugs", []))
         
-        logger.info(f"🐍 ANIMESAMA: Scraping du planning en cours")
+        logger.log("ANIMESAMA", f"Scraping du planning en cours")
         try:
             response = await self._rate_limited_request('get', self.planning_url)
             if not response:
-                logger.warning("🐍 ANIMESAMA: Impossible de récupérer le planning")
+                logger.log("WARNING", "ANIMESAMA: Impossible de récupérer le planning")
                 return set()
             
             anime_slugs = self._extract_anime_slugs_from_planning(response.text)
@@ -36,15 +36,15 @@ class AnimeSamaPlanning(BaseScraper):
                 settings.PLANNING_CACHE_TTL
             )
             
-            logger.info(f"🐍 ANIMESAMA: Planning mis à jour: {len(anime_slugs)} animes actifs")
+            logger.log("ANIMESAMA", f"Planning mis à jour: {len(anime_slugs)} anime actifs")
             return anime_slugs
             
         except Exception as e:
-            logger.error(f"🐍 ANIMESAMA: Erreur scraping planning: {e}")
+            logger.log("ERROR", f"ANIMESAMA: Erreur scraping planning: {e}")
             return set()
     
     def _extract_anime_slugs_from_planning(self, html_content: str) -> Set[str]:
-        """Extrait les slugs d'animes depuis le JavaScript du planning."""
+        """Extrait les slugs d'anime depuis le JavaScript du planning."""
         anime_slugs = set()
         
         try:
@@ -56,16 +56,16 @@ class AnimeSamaPlanning(BaseScraper):
                 if slug:
                     anime_slugs.add(slug)
             
-            logger.debug(f"🔍 DEBUG: Slugs planning extraits: {sorted(anime_slugs)}")
+            logger.log("DEBUG", f"Slugs planning extraits: {sorted(anime_slugs)}")
             
         except Exception as e:
-            logger.error(f"🐍 ANIMESAMA: Erreur extraction slugs planning: {e}")
+            logger.log("ERROR", f"ANIMESAMA: Erreur extraction slugs planning: {e}")
         
         return anime_slugs
     
     async def is_anime_ongoing(self, anime_slug: str) -> bool:
         """Vérifie si un anime est en cours selon le planning."""
-        current_planning = await self.get_current_planning_animes()
+        current_planning = await self.get_current_planning_anime()
         
         is_ongoing = (
             anime_slug in current_planning or
@@ -74,7 +74,7 @@ class AnimeSamaPlanning(BaseScraper):
         )
         
         status = "EN COURS" if is_ongoing else "TERMINÉ"
-        logger.debug(f"🔍 DEBUG: Anime '{anime_slug}': {status}")
+        logger.log("DEBUG", f"Anime '{anime_slug}': {status}")
         
         return is_ongoing
 
@@ -102,13 +102,13 @@ async def get_smart_cache_ttl(anime_slug: str) -> int:
     try:
         if await is_anime_ongoing(anime_slug):
             ttl = settings.ONGOING_ANIME_TTL
-            logger.debug(f"⚡ PERFORMANCE: TTL anime EN COURS '{anime_slug}': {ttl}s")
+            logger.log("PERFORMANCE", f"TTL anime EN COURS '{anime_slug}': {ttl}s")
         else:
             ttl = settings.FINISHED_ANIME_TTL  
-            logger.debug(f"⚡ PERFORMANCE: TTL anime TERMINÉ '{anime_slug}': {ttl}s")
+            logger.log("PERFORMANCE", f"TTL anime TERMINÉ '{anime_slug}': {ttl}s")
         
         return ttl
         
     except Exception as e:
-        logger.warning(f"⚡ PERFORMANCE: Erreur calcul TTL '{anime_slug}': {e}")
+        logger.log("WARNING", f"PERFORMANCE: Erreur calcul TTL '{anime_slug}': {e}")
         return settings.ONGOING_ANIME_TTL

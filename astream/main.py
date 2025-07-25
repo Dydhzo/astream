@@ -1,11 +1,12 @@
+import asyncio
+import os
 import signal
 import sys
 import threading
 import time
-import uvicorn
-import os
-import asyncio
 from contextlib import asynccontextmanager, contextmanager
+
+import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -14,16 +15,17 @@ from starlette.requests import Request
 
 from astream.api.core import main as core_router
 from astream.api.stream import streams as stream_router
+from astream.config.app_settings import settings
 from astream.utils.database import (
     setup_database,
     teardown_database,
     cleanup_expired_locks,
 )
+from astream.utils.dependencies import set_global_http_client
 from astream.utils.http_client import HttpClient
 from astream.utils.logger import logger
-from astream.config.app_settings import settings
-from astream.utils.dependencies import set_global_http_client
 from astream.utils.error_handler import global_exception_handler
+from astream.utils.dataset_loader import DatasetLoader, set_dataset_loader
 
 
 class LoguruMiddleware(BaseHTTPMiddleware):
@@ -39,14 +41,14 @@ class LoguruMiddleware(BaseHTTPMiddleware):
             status_code = response.status_code
             return response
         except Exception as e:
-            logger.exception(f"Exception durant le traitement de la requête: {e}")
+            logger.log("ERROR", f"Exception durant le traitement de la requête: {e}")
             raise
         finally:
             process_time = time.time() - start_time
             if status_code >= 400:
                 logger.log("API", f"{request.method} {request.url.path} [{status_code}] {process_time:.3f}s")
             else:
-                logger.debug(f"{request.method} {request.url.path} [{status_code}] {process_time:.3f}s")
+                logger.log("API", f"{request.method} {request.url.path} [{status_code}] {process_time:.3f}s")
 
 
 @asynccontextmanager
@@ -59,11 +61,20 @@ async def lifespan(app: FastAPI):
         logger.log("ASTREAM", "Client HTTP initialisé")
         
         set_global_http_client(app.state.http_client)
+        
+        # Initialiser le dataset loader
+        if settings.DATASET_ENABLED:
+            dataset_loader = DatasetLoader(app.state.http_client)
+            await dataset_loader.initialize()
+            set_dataset_loader(dataset_loader)
+            logger.log("ASTREAM", "Dataset loader initialisé")
+        else:
+            logger.log("ASTREAM", "Dataset désactivé")
 
         logger.log("ASTREAM", "Initialisation terminée - Prêt à scraper Anime-Sama")
 
     except Exception as e:
-        logger.error(f"Échec de l'initialisation : {e}")
+        logger.log("ERROR", f"Échec de l'initialisation : {e}")
         raise RuntimeError(f"L'initialisation a échoué : {e}")
 
     cleanup_task = asyncio.create_task(cleanup_expired_locks())
@@ -105,7 +116,7 @@ static_dir = "astream/templates"
 if os.path.exists(static_dir) and os.path.isdir(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 else:
-    logger.warning(f"Répertoire statique manquant: {static_dir}")
+    logger.log("WARNING", f"Répertoire statique manquant: {static_dir}")
 
 app.include_router(core_router)
 app.include_router(stream_router)
@@ -125,7 +136,7 @@ class Server(uvicorn.Server):
                 time.sleep(1e-3)
             yield
         except Exception as e:
-            logger.error(f"Erreur dans le thread du serveur: {e}")
+            logger.log("ERROR", f"Erreur dans le thread du serveur: {e}")
             raise e
         finally:
             self.should_exit = True
@@ -133,6 +144,7 @@ class Server(uvicorn.Server):
 
 
 def signal_handler(sig, frame):
+    """Gestionnaire de signal pour arrêt propre du serveur."""
     logger.log("ASTREAM", "Arret en cours...")
     sys.exit(0)
 
@@ -142,6 +154,7 @@ signal.signal(signal.SIGTERM, signal_handler)
 
 
 def start_log():
+    """Initialise les logs de démarrage de l'application."""
     """Affiche la configuration de démarrage."""
     logger.log(
         "ASTREAM",
@@ -152,9 +165,11 @@ def start_log():
         f"Base de donnees ({settings.DATABASE_TYPE}): {settings.DATABASE_PATH if settings.DATABASE_TYPE == 'sqlite' else settings.DATABASE_URL} - TTL: anime_data={settings.EPISODE_PLAYERS_TTL}s",
     )
     logger.log("ASTREAM", f"HTML d'en-tete personnalise: {bool(settings.CUSTOM_HEADER_HTML)}")
+    logger.log("ASTREAM", f"Dataset: {'Activé' if settings.DATASET_ENABLED else 'Désactivé'} - Auto-update: {'Activé' if settings.AUTO_UPDATE_DATASET else 'Désactivé'}")
 
 
 def run_with_uvicorn():
+    """Lance le serveur avec Uvicorn."""
     """Lance le serveur avec Uvicorn uniquement."""
     config = uvicorn.Config(
         app,
@@ -175,13 +190,13 @@ def run_with_uvicorn():
         except KeyboardInterrupt:
             logger.log("ASTREAM", "Arrêt manuel du serveur")
         except Exception as e:
-            logger.error(f"Erreur inattendue: {e}")
-            logger.exception("Erreur inattendue")
+            logger.log("ERROR", f"Erreur inattendue: {e}")
         finally:
             logger.log("ASTREAM", "Serveur arrêté")
 
 
 def run_with_gunicorn():
+    """Lance le serveur avec Gunicorn en mode multi-workers."""
     """Lance le serveur avec Gunicorn et workers Uvicorn."""
     import gunicorn.app.base
 

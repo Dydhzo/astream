@@ -68,7 +68,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     """Handler global pour toutes les exceptions."""
     try:
         if isinstance(exc, AStreamException):
-            logger.warning(f"⚠️ WARNING: Exception AStream: {exc.error_code.value} - {exc.message}")
+            logger.log("WARNING", f"Exception AStream: {exc.error_code.value} - {exc.message}")
             return JSONResponse(
                 status_code=exc.http_status,
                 content={
@@ -88,7 +88,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
             )
         
         else:
-            logger.error(f"❌ ERROR: Exception non gérée: {str(exc)}")
+            logger.log("ERROR", f"Exception non gérée: {str(exc)}")
             return JSONResponse(
                 status_code=500,
                 content={
@@ -98,7 +98,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
             )
             
     except Exception as handler_error:
-        logger.error(f"❌ ERROR: Erreur dans le handler d'exception: {handler_error}")
+        logger.log("ERROR", f"Erreur dans le handler d'exception: {handler_error}")
         return JSONResponse(
             status_code=500,
             content={

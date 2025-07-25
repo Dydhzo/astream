@@ -14,11 +14,11 @@ class AnimeSamaVideoResolver(BaseScraper):
     """Résolveur d'URLs vidéo."""
     
     def __init__(self, client):
-        super().__init__(client, "https://anime-sama.fr")
+        super().__init__(client, settings.ANIMESAMA_URL)
 
     async def extract_video_urls_from_players_with_language(self, player_urls_with_language: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Visite chaque player et extrait les URLs vidéo."""
-        logger.debug(f"🎬 STREAM: Visite {len(player_urls_with_language)} players pour extraire URLs vidéo")
+        logger.log("STREAM", f"Visite {len(player_urls_with_language)} players pour extraire URLs vidéo")
         
         async def extract_from_single_player_with_language(player_data: Dict[str, Any]) -> List[Dict[str, Any]]:
             """Extrait les URLs vidéo d'un seul player avec info de langue."""
@@ -32,7 +32,7 @@ class AnimeSamaVideoResolver(BaseScraper):
                     if sibnet_url:
                         return [{"url": sibnet_url, "language": language}]
                     else:
-                        logger.warning(f"⚠️ WARNING: Impossible extraire URL Sibnet depuis {player_url}")
+                        logger.log("WARNING", f"Impossible extraire URL Sibnet depuis {player_url}")
                         return []
                 
                 response = await self.client.get(player_url)
@@ -48,7 +48,7 @@ class AnimeSamaVideoResolver(BaseScraper):
                 return results
                 
             except Exception as e:
-                logger.warning(f"⚠️ WARNING: Échec visite {player_data['url']}: {e}")
+                logger.log("WARNING", f"Échec visite {player_data['url']}: {e}")
                 return []
         
         extraction_tasks = [extract_from_single_player_with_language(player_data) for player_data in player_urls_with_language]
@@ -74,7 +74,7 @@ class AnimeSamaVideoResolver(BaseScraper):
                 final_urls_with_language.append(item)
         
         
-        logger.info(f"✅ SUCCESS: Extrait {len(final_urls_with_language)} URLs vidéo uniques")
+        logger.log("INFO", f"SUCCESS: Extrait {len(final_urls_with_language)} URLs vidéo uniques")
         return final_urls_with_language
 
     def _extract_video_urls_from_html(self, html: str, player_url: str) -> List[str]:
@@ -109,7 +109,7 @@ class AnimeSamaVideoResolver(BaseScraper):
             match = re.search(pattern, html)
             
             if not match:
-                logger.warning(f"⚠️ WARNING: Pattern player.src non trouvé dans {player_url}")
+                logger.log("WARNING", f"Pattern player.src non trouvé dans {player_url}")
                 return None
             
             redirect_url = match.group(1)
@@ -131,10 +131,10 @@ class AnimeSamaVideoResolver(BaseScraper):
                             real_url = f"https:{real_url}"
                         return real_url
                     else:
-                        logger.warning(f"⚠️ WARNING: Header Location manquant réponse Sibnet")
+                        logger.log("WARNING", f"Header Location manquant réponse Sibnet")
                         return None
                 else:
-                    logger.warning(f"⚠️ WARNING: Réponse Sibnet inattendue: {response.status_code}")
+                    logger.log("WARNING", f"Réponse Sibnet inattendue: {response.status_code}")
                     return None
             
             except Exception as redirect_error:
@@ -145,11 +145,11 @@ class AnimeSamaVideoResolver(BaseScraper):
                         if real_url.startswith('//'):
                             real_url = f"https:{real_url}"
                         return real_url
-                logger.warning(f"⚠️ WARNING: Erreur suivi redirection Sibnet: {redirect_error}")
+                logger.log("WARNING", f"Erreur suivi redirection Sibnet: {redirect_error}")
                 return None
                 
         except Exception as e:
-            logger.warning(f"⚠️ WARNING: Erreur extraction Sibnet: {e}")
+            logger.log("WARNING", f"Erreur extraction Sibnet: {e}")
             return None
 
     def _filter_excluded_domains(self, urls: List[str]) -> List[str]:

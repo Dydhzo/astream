@@ -36,11 +36,11 @@ def detect_language_from_card(card_element) -> List[str]:
         if not languages:
             languages.append('VOSTFR')
             
-        logger.debug(f"🔍 DEBUG: Langues détectées: {languages}")
+        logger.log("DEBUG", f"Langues détectées: {languages}")
         return languages
         
     except Exception as e:
-        logger.warning(f"⚠️ WARNING: Erreur détection langue: {e}")
+        logger.log("WARNING", f"Erreur détection langue: {e}")
         return ['VOSTFR']
 
 
@@ -67,7 +67,7 @@ def extract_anime_slug_from_url(url: str) -> Optional[str]:
             return parts[0] if parts else None
         return None
     except Exception as e:
-        logger.warning(f"⚠️ WARNING: Erreur extraction slug: {e}")
+        logger.log("WARNING", f"Erreur extraction slug: {e}")
         return None
 
 
@@ -119,7 +119,7 @@ def parse_season_info(season_text: str) -> Dict[str, Any]:
         }
         
     except Exception as e:
-        logger.warning(f"⚠️ WARNING: Erreur parse saison '{season_text}': {e}")
+        logger.log("WARNING", f"Erreur parse saison '{season_text}': {e}")
         return {
             'season_number': 1,
             'sub_season': None,
@@ -139,16 +139,17 @@ def extract_video_urls_from_text(text: str) -> List[str]:
     unique_urls = list(set(urls))
     valid_urls = [url for url in unique_urls if is_valid_video_url(url)]
     
-    logger.debug(f"🔍 DEBUG: URLs vidéo extraites: {len(valid_urls)}")
+    logger.log("DEBUG", f"URLs vidéo extraites: {len(valid_urls)}")
     return valid_urls
 
 
 def is_valid_video_url(url: str) -> bool:
     """Vérifie si une URL vidéo est valide."""
     try:
+        from astream.config.app_settings import settings
         invalid_patterns = [
-            'https://anime-sama.fr/templates/',
-            'https://anime-sama.fr/assets/',
+            f'{settings.ANIMESAMA_URL}/templates/',
+            f'{settings.ANIMESAMA_URL}/assets/',
             '.css',
             '.js',
             '.png',
@@ -177,11 +178,11 @@ def extract_episodes_from_js(js_content: str) -> List[str]:
         
         valid_episodes = [url for url in episodes if is_valid_video_url(url)]
         
-        logger.debug(f"🔍 DEBUG: Épisodes extraits du JS: {len(valid_episodes)}")
+        logger.log("DEBUG", f"Épisodes extraits du JS: {len(valid_episodes)}")
         return valid_episodes
         
     except Exception as e:
-        logger.warning(f"⚠️ WARNING: Erreur extraction épisodes JS: {e}")
+        logger.log("WARNING", f"Erreur extraction épisodes JS: {e}")
         return []
 
 
@@ -197,7 +198,7 @@ def clean_anime_title(title: str) -> str:
         return cleaned.strip()
         
     except Exception as e:
-        logger.warning(f"⚠️ WARNING: Erreur nettoyage titre '{title}': {e}")
+        logger.log("WARNING", f"Erreur nettoyage titre '{title}': {e}")
         return title
 
 
@@ -222,11 +223,11 @@ def extract_genres_from_text(text: str) -> List[str]:
         
         unique_genres = list(set([g for g in genres if len(g) > 1]))
         
-        logger.debug(f"🔍 DEBUG: Genres extraits: {unique_genres}")
+        logger.log("DEBUG", f"Genres extraits: {unique_genres}")
         return unique_genres
         
     except Exception as e:
-        logger.warning(f"⚠️ WARNING: Erreur extraction genres: {e}")
+        logger.log("WARNING", f"Erreur extraction genres: {e}")
         return []
 
 

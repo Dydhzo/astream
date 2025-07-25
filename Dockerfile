@@ -5,15 +5,15 @@ LABEL name="AStream" \
 
 WORKDIR /app
 
-# ✅ BUILDS REPRODUCTIBLES - Copier les fichiers de dépendances
+# BUILDS REPRODUCTIBLES - Copier les fichiers de dépendances
 COPY pyproject.toml uv.lock* ./
 
-# ✅ INSTALLATION SÉCURISÉE - Utiliser les versions exactes ou générer un lock
+# INSTALLATION SÉCURISÉE - Utiliser les versions exactes ou générer un lock
 RUN if [ -f uv.lock ]; then \
-        echo "📦 Utilisation de uv.lock existant pour une construction reproductible"; \
+        echo "Utilisation de uv.lock existant pour une construction reproductible"; \
         uv sync --frozen; \
     else \
-        echo "⚠️ Aucun uv.lock trouvé, installation depuis pyproject.toml"; \
+        echo "Aucun uv.lock trouvé, installation depuis pyproject.toml"; \
         uv sync; \
     fi
 

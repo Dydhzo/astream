@@ -23,7 +23,7 @@ class BaseScraper(ABC):
         if self._current_client_ip:
             await rate_limiter.wait_if_needed(self._current_client_ip)
         
-        logger.debug(f"📁 API: Rate limited request {method.upper()} {url}", extra={
+        logger.log("API", f"Rate limited request {method.upper()} {url}", extra={
             "client_ip": self._current_client_ip,
             "method": method,
             "url": url
@@ -33,7 +33,7 @@ class BaseScraper(ABC):
     
     async def _internal_request(self, method: str, url: str, **kwargs) -> Any:
         """Effectue une requête interne SANS rate limiting (pour détection parallèle)."""
-        logger.debug(f"📁 API: Internal request {method.upper()} {url}", extra={
+        logger.log("API", f"Internal request {method.upper()} {url}", extra={
             "method": method,
             "url": url
         })

@@ -46,10 +46,6 @@
             box-sizing: border-box;
         }
 
-        html {
-            scroll-behavior: auto; /* Disable smooth scrolling globally */
-        }
-        
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--bg-dark);
@@ -217,12 +213,6 @@
             gap: 8px;
             text-decoration: none;
             font-size: 0.95rem;
-        }
-
-        .btn.large {
-            padding: 16px 32px;
-            font-size: 1.1rem;
-            min-height: 56px;
         }
 
         .btn-primary {
@@ -425,6 +415,248 @@
 
         .content-table td {
             color: var(--text-secondary);
+        }
+
+        /* Problem Cards */
+        .problem-card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .problem-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
+        }
+
+        .problem-card h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0 0 1rem 0;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .problem-card p {
+            margin: 0.8rem 0;
+            line-height: 1.6;
+        }
+
+        .github-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-card);
+            color: var(--primary);
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-weight: 500;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+
+        .github-link:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        .solution-list {
+            list-style: none;
+            margin: 1rem 0 0 0;
+            padding: 0;
+        }
+
+        .solution-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 0.8rem;
+            padding: 8px 0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .solution-list li i {
+            color: var(--accent);
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+
+        /* Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .content-card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .content-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        }
+
+        .content-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .content-card h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0 0 0.5rem 0;
+            color: var(--text-primary);
+        }
+
+        .season-number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 0.5rem 0;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+        }
+
+        .content-card p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        .info-note {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .info-note p {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Modern Radio Group */
+        .modern-radio-group {
+            display: grid;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .modern-radio-option {
+            position: relative;
+        }
+
+        .modern-radio-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .modern-radio-label {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.2rem;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: var(--bg-elevated);
+        }
+
+        .modern-radio-label:hover {
+            border-color: var(--primary);
+            background: var(--bg-card);
+        }
+
+        .modern-radio-option input[type="radio"]:checked + .modern-radio-label {
+            border-color: var(--primary);
+            background: rgba(124, 58, 237, 0.05);
+        }
+
+        .radio-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .radio-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .radio-content strong {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .radio-content span {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .order-selection h3 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .order-selection p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
         }
 
         /* Config Sidebar */
@@ -651,6 +883,41 @@
                 grid-template-columns: 1fr;
             }
 
+            .content-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .content-card {
+                padding: 1.2rem;
+            }
+
+            .content-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+            }
+
+            .season-number {
+                font-size: 1.5rem;
+            }
+
+            .modern-radio-label {
+                padding: 1rem;
+                gap: 0.8rem;
+            }
+
+            .radio-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
             .main {
                 padding: 1rem;
             }
@@ -673,12 +940,7 @@
                 font-size: 2rem;
             }
 
-
             .warning-card {
-                padding: 1rem;
-            }
-
-            .feature-card {
                 padding: 1rem;
             }
 
@@ -716,6 +978,12 @@
             border-radius: 8px;
             margin-top: 1rem;
             display: none;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .success.show {
+            display: flex;
         }
 
         .error {
@@ -726,6 +994,12 @@
             border-radius: 8px;
             margin-top: 1rem;
             display: none;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .error.show {
+            display: flex;
         }
     </style>
 </head>
@@ -760,7 +1034,7 @@
             <div class="page active" id="home">
                 <div class="hero">
                     <h1>{{ webConfig.ADDON_NAME }}</h1>
-                    <p>Addon non officiel pour Stremio permettant de streamer les animes depuis Anime-Sama</p>
+                    <p>Addon non officiel pour Stremio permettant de streamer les anime depuis Anime-Sama</p>
                     <div class="hero-buttons">
                         <a href="https://github.com/Dydhzo/astream" target="_blank" class="btn btn-primary">
                             <i data-lucide="github"></i>
@@ -824,42 +1098,57 @@
                             <i data-lucide="copy"></i>
                         </button>
                     </h2>
-                    <table class="content-table">
-                        <thead>
-                            <tr>
-                                <th>Type de Contenu</th>
-                                <th>Numéro de Saison</th>
-                                <th>Description</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Saisons normales</td>
-                                <td>1, 2, 3...</td>
-                                <td>Numérotation standard</td>
-                            </tr>
-                            <tr>
-                                <td>Sous-saisons</td>
-                                <td>4-2, 4-3...</td>
-                                <td>Intégrées dans la saison principale</td>
-                            </tr>
-                            <tr>
-                                <td>Films</td>
-                                <td>998</td>
-                                <td>Tous les films liés à l'anime</td>
-                            </tr>
-                            <tr>
-                                <td>Hors-série</td>
-                                <td>999</td>
-                                <td>Épisodes hors-série</td>
-                            </tr>
-                            <tr>
-                                <td>Spéciaux/OAV</td>
-                                <td>0</td>
-                                <td>OAV et épisodes spéciaux</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div class="content-grid">
+                        <div class="content-card">
+                            <div class="content-icon" style="background: var(--primary);">
+                                <i data-lucide="calendar"></i>
+                            </div>
+                            <h3>Saisons normales</h3>
+                            <div class="season-number">1, 2, 3...</div>
+                            <p>Numérotation standard des saisons principales</p>
+                        </div>
+                        
+                        <div class="content-card">
+                            <div class="content-icon" style="background: #8b5cf6;">
+                                <i data-lucide="layers"></i>
+                            </div>
+                            <h3>Sous-saisons</h3>
+                            <div class="season-number">4-2, 4-3...</div>
+                            <p>Intégrées dans la saison principale correspondante</p>
+                        </div>
+                        
+                        <div class="content-card">
+                            <div class="content-icon" style="background: #f59e0b;">
+                                <i data-lucide="film"></i>
+                            </div>
+                            <h3>Films</h3>
+                            <div class="season-number">998</div>
+                            <p>Tous les films liés à l'anime regroupés</p>
+                        </div>
+                        
+                        <div class="content-card">
+                            <div class="content-icon" style="background: #ef4444;">
+                                <i data-lucide="star"></i>
+                            </div>
+                            <h3>Hors-série</h3>
+                            <div class="season-number">999</div>
+                            <p>Épisodes hors-série</p>
+                        </div>
+                        
+                        <div class="content-card">
+                            <div class="content-icon" style="background: var(--accent);">
+                                <i data-lucide="sparkles"></i>
+                            </div>
+                            <h3>Spéciaux/OAV</h3>
+                            <div class="season-number">0</div>
+                            <p>OAV et épisodes spéciaux</p>
+                        </div>
+                    </div>
+                    
+                    <div class="info-note">
+                        <i data-lucide="info" style="color: var(--primary);"></i>
+                        <p><strong>Note Stremio :</strong> Ces numéros correspondent aux saisons où vous trouverez chaque type de contenu dans l'interface Stremio.</p>
+                    </div>
                 </div>
 
                 <div class="info-section" id="lecteurs">
@@ -870,30 +1159,27 @@
                             <i data-lucide="copy"></i>
                         </button>
                     </h2>
-                    <h3>Lecteurs Supportés</h3>
-                    <ul>
-                        <li><strong>Sibnet :</strong> Extraction avec contournement de protection</li>
-                        <li><strong>Vidmoly :</strong> Support complet</li>
-                        <li><strong>Sendvid :</strong> Support complet</li>
-                        <li><strong>Oneupload :</strong> Support complet</li>
-                    </ul>
+                    <div class="problem-card">
+                        <h3><i data-lucide="check-circle"></i> Lecteurs Supportés</h3>
+                        <ul class="solution-list">
+                            <li><i data-lucide="play-circle"></i> <strong>Sibnet :</strong> Extraction avec contournement de protection</li>
+                            <li><i data-lucide="play-circle"></i> <strong>Vidmoly :</strong> Support complet</li>
+                            <li><i data-lucide="play-circle"></i> <strong>Sendvid :</strong> Support complet</li>
+                            <li><i data-lucide="play-circle"></i> <strong>Oneupload :</strong> Support complet</li>
+                        </ul>
+                    </div>
                     
-                    <h3>Lecteurs Non Supportés</h3>
-                    <ul>
-                        <li><strong>VK :</strong> Protection complexe</li>
-                        <li><strong>Moveanime :</strong> Protection complexe</li>
-                        <li><strong>Smoothanime :</strong> Protection complexe</li>
-                    </ul>
+                    <div class="problem-card">
+                        <h3><i data-lucide="x-circle"></i> Lecteurs Non Supportés</h3>
+                        <ul class="solution-list">
+                            <li><i data-lucide="shield-x"></i> <strong>VK :</strong> Protection complexe</li>
+                            <li><i data-lucide="shield-x"></i> <strong>Moveanime :</strong> Protection complexe</li>
+                            <li><i data-lucide="shield-x"></i> <strong>Smoothanime :</strong> Protection complexe</li>
+                        </ul>
+                    </div>
                     
-                    <p style="margin-top: 1rem; padding: 12px; background: var(--bg-elevated); border-radius: 8px; border-left: 3px solid var(--secondary); color: var(--text-secondary); font-size: 0.9rem;">
-                        <strong>ℹ️ Note :</strong> D'autres lecteurs peuvent fonctionner mais n'ont pas été testés officiellement. Certains lecteurs peuvent également ne pas fonctionner.
-                    </p>
-                    
-                    <p style="margin-top: 1rem; padding: 12px; background: var(--bg-elevated); border-radius: 8px; border-left: 3px solid var(--warning); color: var(--text-secondary); font-size: 0.9rem;">
-                        <strong>📝 Note :</strong> Si vous voyez un lecteur sur Anime-Sama qui n'apparaît pas dans l'addon, c'est soit un lecteur non supporté, soit un domaine exclu de votre configuration.
-                    </p>
-                    
-                    <h3>Domaines Actuellement Exclus</h3>
+                    <div class="problem-card">
+                        <h3><i data-lucide="filter"></i> Domaines Actuellement Exclus</h3>
                     <div style="display: flex; flex-wrap: wrap; gap: 8px; margin: 1rem 0;">
                         {% if EXCLUDED_DOMAINS %}
                             {% for domain in EXCLUDED_DOMAINS.split(',') %}
@@ -918,6 +1204,55 @@
                             ">Aucun domaine exclu</span>
                         {% endif %}
                     </div>
+                    </div>
+                    
+                    <div class="problem-card">
+                        <h3><i data-lucide="info"></i> Notes Importantes</h3>
+                        <p><strong>ℹ️ Compatibilité :</strong> D'autres lecteurs peuvent fonctionner mais n'ont pas été testés officiellement. Certains lecteurs peuvent également ne pas fonctionner.</p>
+                        <hr style="border: none; height: 1px; background: var(--border); margin: 1rem 0;">
+                        <p><strong>📝 Lecteurs manquants :</strong> Si vous voyez un lecteur sur Anime-Sama qui n'apparaît pas dans l'addon, c'est soit un lecteur non supporté, soit un domaine exclu de votre configuration.</p>
+                    </div>
+                </div>
+
+                <div class="info-section" id="problemes">
+                    <h2>
+                        <i data-lucide="alert-triangle"></i>
+                        Problèmes récurrents
+                        <button class="copy-section-btn" onclick="copySection('problemes', event)" title="Copier le lien vers cette section">
+                            <i data-lucide="copy"></i>
+                        </button>
+                    </h2>
+                    
+                    <div class="problem-card">
+                        <h3><i data-lucide="help-circle"></i> J'ai un problème avec mon épisode</h3>
+                        <p><strong>Solution :</strong> Essayez d'abord de changer de lecteur vidéo. Chaque épisode propose généralement plusieurs lecteurs différents.</p>
+                    </div>
+                    
+                    <div class="problem-card">
+                        <h3><i data-lucide="loader"></i> La vidéo charge lentement</h3>
+                        <p><strong>Solution :</strong> Il arrive que les lecteurs vidéo soient saturés ou surchargés. Changez de lecteur pour en trouver un plus rapide.</p>
+                    </div>
+                    
+                    <div class="problem-card">
+                        <h3><i data-lucide="x-circle"></i> Aucun stream disponible</h3>
+                        <p><strong>Cause :</strong> Le lecteur sur Anime-Sama est cassé ou pas compatible avec notre addon.</p>
+                        <p><strong>Solution :</strong> 
+                            <a href="https://github.com/Dydhzo/astream/issues/new" target="_blank" class="github-link">
+                                <i data-lucide="github"></i>
+                                Ouvrez une issue sur GitHub
+                            </a> 
+                            pour faire la demande d'ajout de l'épisode manuellement.
+                        </p>
+                    </div>
+                    
+                    <div class="problem-card">
+                        <h3><i data-lucide="list-checks"></i> Liste de solutions diverses</h3>
+                        <ul class="solution-list">
+                            <li><i data-lucide="wifi"></i> Vérifiez si votre connexion internet est bonne (téléchargements, chargement de vidéos, mises à jour...)</li>
+                            <li><i data-lucide="tv"></i> Changez de lecteur vidéo</li>
+                            <li><i data-lucide="clock"></i> Attendre 1h puis réessayer</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
@@ -929,36 +1264,53 @@
                         Configuration de l'Addon
                     </h2>
                     
-                    <h3 style="color: var(--primary);">Préférence de langue</h3>
-                    <form id="configForm">
-                        <div class="form-group">
-                            <div class="radio-group">
-                                <div class="radio-option">
+                    <div class="problem-card">
+                        <h3><i data-lucide="languages"></i> Préférence de langue</h3>
+                        <form id="configForm">
+                            <div class="modern-radio-group">
+                                <div class="modern-radio-option">
                                     <input type="radio" id="langAll" name="language" value="Tout" checked>
-                                    <label for="langAll" class="radio-label">
-                                        <i data-lucide="globe"></i>
-                                        Tout afficher
+                                    <label for="langAll" class="modern-radio-label">
+                                        <div class="radio-icon">
+                                            <i data-lucide="globe"></i>
+                                        </div>
+                                        <div class="radio-content">
+                                            <strong>Tout afficher</strong>
+                                            <span>Affiche tous les streams avec ordre de priorité</span>
+                                        </div>
                                     </label>
                                 </div>
-                                <div class="radio-option">
+                                
+                                <div class="modern-radio-option">
                                     <input type="radio" id="langVOSTFR" name="language" value="VOSTFR">
-                                    <label for="langVOSTFR" class="radio-label">
-                                        <i data-lucide="subtitles"></i>
-                                        VOSTFR uniquement
+                                    <label for="langVOSTFR" class="modern-radio-label">
+                                        <div class="radio-icon">
+                                            <i data-lucide="subtitles"></i>
+                                        </div>
+                                        <div class="radio-content">
+                                            <strong>VOSTFR uniquement</strong>
+                                            <span>Affiche seulement les anime sous-titrés</span>
+                                        </div>
                                     </label>
                                 </div>
-                                <div class="radio-option">
+                                
+                                <div class="modern-radio-option">
                                     <input type="radio" id="langVF" name="language" value="VF">
-                                    <label for="langVF" class="radio-label">
-                                        <i data-lucide="volume-2"></i>
-                                        VF uniquement
+                                    <label for="langVF" class="modern-radio-label">
+                                        <div class="radio-icon">
+                                            <i data-lucide="volume-2"></i>
+                                        </div>
+                                        <div class="radio-content">
+                                            <strong>VF uniquement</strong>
+                                            <span>Affiche seulement les anime doublés français</span>
+                                        </div>
                                     </label>
                                 </div>
                             </div>
                             
                             <div class="order-selection" id="orderSelection">
-                                <h3 style="color: var(--primary); margin-bottom: 0.5rem;">Ordre de priorité des langues</h3>
-                                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Utilisez les boutons pour réorganiser l'ordre d'apparition des streams</p>
+                                <h3><i data-lucide="move-vertical"></i> Ordre de priorité des langues</h3>
+                                <p>Utilisez les boutons pour réorganiser l'ordre d'apparition des streams</p>
                                 <ul class="order-list" id="orderList">
                                     <li class="order-item" data-lang="VOSTFR">
                                         <span>VOSTFR</span>
@@ -978,12 +1330,14 @@
                                     </li>
                                 </ul>
                             </div>
-                        </div>
-
-                        <!-- Séparateur -->
-                        <hr style="border: none; height: 1px; background: var(--border); margin: 2rem 0 2rem 0;">
+                        </form>
+                    </div>
+                    
+                    <div class="problem-card">
+                        <h3><i data-lucide="download"></i> Installation</h3>
+                        <p>Cliquez sur le bouton ci-dessous pour installer l'addon dans Stremio avec vos préférences.</p>
                         
-                        <div class="action-buttons" style="display: flex; justify-content: center; gap: 1rem;">
+                        <div class="action-buttons">
                             <button type="button" class="btn btn-primary large" id="installBtn">
                                 <i data-lucide="download"></i>
                                 Installer sur Stremio
@@ -1002,7 +1356,7 @@
                             <i data-lucide="x-circle"></i>
                             Erreur lors de la copie du lien.
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1215,18 +1569,18 @@
             
             try {
                 await navigator.clipboard.writeText(manifestUrl);
-                successMessage.style.display = 'block';
-                errorMessage.style.display = 'none';
+                successMessage.classList.add('show');
+                errorMessage.classList.remove('show');
                 
                 setTimeout(() => {
-                    successMessage.style.display = 'none';
+                    successMessage.classList.remove('show');
                 }, 3000);
             } catch (err) {
-                errorMessage.style.display = 'block';
-                successMessage.style.display = 'none';
+                errorMessage.classList.add('show');
+                successMessage.classList.remove('show');
                 
                 setTimeout(() => {
-                    errorMessage.style.display = 'none';
+                    errorMessage.classList.remove('show');
                 }, 3000);
             }
         });
@@ -1234,56 +1588,25 @@
         // Initialize order selection visibility
         document.getElementById('orderSelection').classList.add('active');
         
-        // Perfect scroll to section function - completely invisible
+        // Simple scroll to section function
         function scrollToSection(sectionId) {
             const element = document.getElementById(sectionId);
             if (!element) return;
             
-            // Create white overlay to hide scrolling completely
-            const overlay = document.createElement('div');
-            overlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: var(--bg-dark);
-                z-index: 99999;
-                opacity: 1;
-                transition: opacity 0.2s ease;
-            `;
-            document.body.appendChild(overlay);
-            
-            // Wait for page transition to complete
             setTimeout(() => {
-                // Calculate position accounting for fixed header
                 const navHeight = 70;
-                const extraPadding = 30;
-                const targetPosition = element.offsetTop - navHeight - extraPadding;
-                
-                // Instant jump to position
-                document.documentElement.scrollTop = Math.max(0, targetPosition);
-                document.body.scrollTop = Math.max(0, targetPosition);
-                
-                // Remove overlay after positioning
-                setTimeout(() => {
-                    overlay.style.opacity = '0';
-                    setTimeout(() => {
-                        if (overlay.parentNode) {
-                            document.body.removeChild(overlay);
-                        }
-                    }, 200);
-                }, 50);
+                const targetPosition = element.offsetTop - navHeight - 20;
+                window.scrollTo(0, Math.max(0, targetPosition));
             }, 100);
         }
         
         // Handle URL hash on page load
         function initializeFromHash() {
             const hash = window.location.hash.slice(1); // Remove #
-            if (hash === 'info' || hash === 'organisation' || hash === 'lecteurs') {
+            if (hash === 'info' || hash === 'organisation' || hash === 'lecteurs' || hash === 'problemes') {
                 showPage('info');
                 // Scroll to specific section if it's an anchor
-                if (hash === 'organisation' || hash === 'lecteurs') {
+                if (hash === 'organisation' || hash === 'lecteurs' || hash === 'problemes') {
                     scrollToSection(hash);
                 }
             } else if (hash === 'config') {
@@ -1308,7 +1631,7 @@
                 navigator.clipboard.writeText(url)
                     .then(() => {
                         showCopySuccess(event.target);
-                        showToast('✅ Lien copié dans le presse-papiers !');
+                        showToast('Lien copié dans le presse-papiers !');
                     })
                     .catch(() => {
                         // Fallback to legacy method
@@ -1335,13 +1658,13 @@
                 const successful = document.execCommand('copy');
                 if (successful) {
                     showCopySuccess(target);
-                    showToast('✅ Lien copié dans le presse-papiers !');
+                    showToast('Lien copié dans le presse-papiers !');
                 } else {
                     throw new Error('execCommand failed');
                 }
             } catch (err) {
                 console.error('Erreur copie:', err);
-                showToast('❌ Impossible de copier le lien', true);
+                showToast('Impossible de copier le lien', true);
                 // Show manual copy option
                 prompt('Copiez ce lien manuellement :', text);
             } finally {

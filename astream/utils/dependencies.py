@@ -75,3 +75,10 @@ def get_animesama_api_dependency(request: Request, client: HttpClient = Depends(
 def get_animesama_player_dependency(request: Request, client: HttpClient = Depends(get_http_client)) -> AnimeSamaPlayer:
     """Dépendance FastAPI AnimeSamaPlayer."""
     return _create_animesama_player(client, extract_client_ip(request))
+
+
+def get_global_http_client() -> HttpClient:
+    """Récupère le client HTTP global."""
+    if _global_http_client is None:
+        raise RuntimeError("HttpClient global non configuré")
+    return _global_http_client
