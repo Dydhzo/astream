@@ -20,7 +20,7 @@
 
 ## 🌟 À propos
 
-**AStream** est un addon Stremio spécialisé dans le streaming d'animes depuis le site français Anime-Sama. Il offre une intégration transparente du catalogue complet d'Anime-Sama directement dans votre interface Stremio.
+**AStream** est un addon Stremio spécialisé dans le streaming d'anime depuis le site français Anime-Sama. Il offre une intégration transparente du catalogue complet d'Anime-Sama directement dans votre interface Stremio.
 
 ### 🎯 Ce que fait AStream
 
@@ -35,7 +35,7 @@
 
 ## ✨ Fonctionnalités
 
-### 🔍 Système de Scraping
+### Système de Scraping
 
 - **Parser HTML avancé** avec BeautifulSoup4
 - **Détection automatique** des métadonnées :
@@ -48,22 +48,22 @@
   - Support structures complexes (sous-saisons)
   - Gestion contenus spéciaux
 
-### 🎬 Lecteurs Vidéo Supportés
+### Lecteurs Vidéo Supportés
 
 **Testés et fonctionnels :**
-- ✅ **Sibnet** - Extraction avec contournement protection
-- ✅ **Vidmoly** - Support complet
-- ✅ **Sendvid** - Support complet
-- ✅ **Oneupload** - Support complet
+- **Sibnet** - Extraction avec contournement protection
+- **Vidmoly** - Support complet
+- **Sendvid** - Support complet
+- **Oneupload** - Support complet
 
 **Non supportés :**
-- ❌ **VK** - Protection complexe
-- ❌ **Moveanime** - Protection complexe
-- ❌ **Smoothanime** - Protection complexe
+- **VK** - Protection complexe
+- **Moveanime** - Protection complexe
+- **Smoothanime** - Protection complexe
 
 **Note :** D'autres lecteurs peuvent fonctionner mais n'ont pas été testés officiellement. Certains lecteurs peuvent également ne pas fonctionner
 
-### 📺 Organisation des Contenus
+### Organisation des Contenus
 
 | Type de Contenu | Numéro de Saison | Description |
 |-----------------|------------------|-------------|
@@ -75,7 +75,7 @@
 
 ---
 
-## 🚀 Installation
+## Installation
 
 > 📄 **Pour configurer les variables d'environnement, consultez le fichier [`.env.example`](.env.example)**
 
@@ -168,11 +168,16 @@ Toutes les variables disponibles dans le fichier `.env` :
 | `DATABASE_TYPE` | Type de base de données | `sqlite` | `sqlite`/`postgresql` |
 | `DATABASE_PATH` | Chemin SQLite | `data/astream.db` | Chemin |
 | `DATABASE_URL` | URL PostgreSQL (si DATABASE_TYPE=postgresql) | - | URL |
+| **Configuration Dataset** |
+| `DATASET_ENABLED` | Activer/désactiver le système de dataset | `true` | Booléen |
+| `DATASET_URL` | URL du dataset à télécharger | `https://raw.githubusercontent.com/Dydhzo/astream/main/dataset.json` | URL |
+| `AUTO_UPDATE_DATASET` | Mise à jour automatique du dataset | `true` | Booléen |
+| `DATASET_UPDATE_INTERVAL` | Intervalle de vérification des mises à jour | `3600` (1h) | Secondes |
 | **Configuration Cache (secondes)** |
 | `DYNAMIC_LISTS_TTL` | Cache listes et catalogues | `3600` (1h) | Secondes |
 | `EPISODE_PLAYERS_TTL` | Cache URLs des lecteurs | `3600` (1h) | Secondes |
-| `ONGOING_ANIME_TTL` | Cache animes en cours | `3600` (1h) | Secondes |
-| `FINISHED_ANIME_TTL` | Cache animes terminés | `604800` (7j) | Secondes |
+| `ONGOING_ANIME_TTL` | Cache anime en cours | `3600` (1h) | Secondes |
+| `FINISHED_ANIME_TTL` | Cache anime terminés | `604800` (7j) | Secondes |
 | `PLANNING_CACHE_TTL` | Cache planning anime | `3600` (1h) | Secondes |
 | **Scraping** |
 | `SCRAPE_LOCK_TTL` | Durée des verrous de scraping | `300` (5min) | Secondes |
@@ -181,6 +186,8 @@ Toutes les variables disponibles dans le fichier `.env` :
 | `HTTP_TIMEOUT` | Timeout HTTP général | `15` | Secondes |
 | `RATE_LIMIT_PER_USER` | Délai entre requêtes par IP | `1` | Secondes |
 | `PROXY_URL` | Proxy HTTP/HTTPS recommandé | - | URL |
+| `PROXY_BYPASS_DOMAINS` | Domaines qui ne doivent pas utiliser le proxy | - | String |
+| `ANIMESAMA_URL` | URL de base d'anime-sama (Worker Cloudflare) | `https://anime-sama.fr` | URL |
 | **Filtrage** |
 | `EXCLUDED_DOMAIN` | Domaines à exclure des streams | - | String |
 | **Personnalisation** |
@@ -191,7 +198,7 @@ Toutes les variables disponibles dans le fichier `.env` :
 
 ---
 
-## 🚀 Performance
+## Performance
 
 ### 📊 Métriques
 
@@ -270,21 +277,21 @@ La logique métier, les scrapers et toutes les fonctionnalités spécifiques à 
 
 ### Remerciements
 
-- **Anime-Sama** pour leur catalogue d'animes
+- **Anime-Sama** pour leur catalogue d'anime
 - **Stremio** pour leur plateforme ouverte
 - La communauté open source
 
 ---
 
-## ⚠️ Avertissement
+## Avertissement
 
 **AStream est un projet non officiel développé de manière indépendante.**
 
-- ❌ **NON affilié à Anime-Sama**
-- ❌ **NON affilié à Stremio**
-- ⚠️ **Utilisez cet addon à vos propres risques**
-- ⚠️ **Respectez les conditions d'utilisation des sites sources**
-- ⚠️ **L'auteur décline toute responsabilité quant à l'utilisation de cet addon**
+- **NON affilié à Anime-Sama**
+- **NON affilié à Stremio**
+- **Utilisez cet addon à vos propres risques**
+- **Respectez les conditions d'utilisation des sites sources**
+- **L'auteur décline toute responsabilité quant à l'utilisation de cet addon**
 
 Cet addon est fourni "tel quel" sans aucune garantie. Il est de la responsabilité de l'utilisateur de vérifier la légalité de son utilisation dans sa juridiction.
 

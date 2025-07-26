@@ -5,6 +5,7 @@ from astream.utils.http_client import HttpClient
 from astream.utils.logger import logger
 from astream.utils.base_scraper import BaseScraper
 from astream.utils.database import get_metadata_from_cache, set_metadata_to_cache, DistributedLock, LockAcquisitionError
+from astream.config.app_settings import settings
 from astream.scrapers.animesama_parser import (
     parse_anime_details_from_html,
     parse_languages_from_html,
@@ -14,15 +15,15 @@ from astream.scrapers.animesama_parser import (
 
 
 class AnimeSamaDetails(BaseScraper):
-    """Gestionnaire des détails d'animes AnimeSama."""
+    """Gestionnaire des détails d'anime AnimeSama."""
     
     def __init__(self, client: HttpClient):
-        super().__init__(client, "https://anime-sama.fr")
+        super().__init__(client, settings.ANIMESAMA_URL)
 
     async def get_anime_details(self, anime_slug: str) -> Optional[Dict[str, Any]]:
         """Récupère les détails d'un anime par slug."""
         try:
-            logger.debug(f"🐍 ANIMESAMA: Récupération détails pour {anime_slug}")
+            logger.log("DEBUG", f"ANIMESAMA: Récupération détails pour {anime_slug}")
             response = await self._rate_limited_request('get', f"{self.base_url}/catalogue/{anime_slug}/")
             response.raise_for_status()
             
@@ -35,13 +36,13 @@ class AnimeSamaDetails(BaseScraper):
             return anime_data
             
         except Exception as e:
-            logger.error(f"🐍 ANIMESAMA: Échec détails pour {anime_slug}: {e}")
+            logger.log("ERROR", f"ANIMESAMA: Échec détails pour {anime_slug}: {e}")
             return None
 
     async def get_seasons(self, anime_slug: str) -> List[Dict[str, Any]]:
         """Récupère les saisons disponibles."""
         try:
-            logger.debug(f"🐍 ANIMESAMA: Récupération saisons pour {anime_slug}")
+            logger.log("DEBUG", f"ANIMESAMA: Récupération saisons pour {anime_slug}")
             response = await self._rate_limited_request('get', f"{self.base_url}/catalogue/{anime_slug}/")
             response.raise_for_status()
             
@@ -49,7 +50,7 @@ class AnimeSamaDetails(BaseScraper):
             return seasons
             
         except Exception as e:
-            logger.error(f"🐍 ANIMESAMA: Échec saisons pour {anime_slug}: {e}")
+            logger.log("ERROR", f"ANIMESAMA: Échec saisons pour {anime_slug}: {e}")
             return []
 
     async def get_film_title(self, anime_slug: str, episode_num: int) -> Optional[str]:
@@ -63,18 +64,18 @@ class AnimeSamaDetails(BaseScraper):
             
             film_titles = parse_film_titles_from_html(html)
             
-            logger.debug(f"🔍 DEBUG: Titres films trouvés: {film_titles}")
+            logger.log("DEBUG", f"Titres films trouvés: {film_titles}")
             
             if episode_num <= len(film_titles):
                 film_title = film_titles[episode_num - 1].strip()
-                logger.debug(f"🔍 DEBUG: Titre film sélectionné: '{film_title}'")
+                logger.log("DEBUG", f"Titre film sélectionné: '{film_title}'")
                 return film_title
             else:
-                logger.warning(f"💡 INFO: Épisode #{episode_num} > nombre films ({len(film_titles)})")
+                logger.log("WARNING", f"Épisode #{episode_num} > nombre films ({len(film_titles)})")
                 return None
                 
         except Exception as e:
-            logger.error(f"🐍 ANIMESAMA: Erreur titre film {anime_slug} #{episode_num}: {e}")
+            logger.log("ERROR", f"ANIMESAMA: Erreur titre film {anime_slug} #{episode_num}: {e}")
             return None
 
     async def fetch_complete_anime_data(self, anime_slug: str) -> Optional[Dict[str, Any]]:
@@ -95,7 +96,7 @@ async def get_or_fetch_anime_details(animesama_details: AnimeSamaDetails, anime_
     cached_anime = await get_metadata_from_cache(cache_id)
 
     if cached_anime:
-        logger.info(f"🔒 DATABASE: Cache hit {cache_id}")
+        logger.log("DATABASE", f"Cache hit {cache_id}")
         return cached_anime
 
     lock_key = f"metadata_fetch_{anime_slug}"
@@ -103,21 +104,21 @@ async def get_or_fetch_anime_details(animesama_details: AnimeSamaDetails, anime_
         async with DistributedLock(lock_key):
             cached_anime = await get_metadata_from_cache(cache_id)
             if cached_anime:
-                logger.info(f"🔒 DATABASE: Cache hit après acquisition du verrou {cache_id}")
+                logger.log("DATABASE", f"Cache hit après acquisition du verrou {cache_id}")
                 return cached_anime
 
-            logger.info(f"🔒 DATABASE: Cache miss {cache_id} - Fetch avec verrou")
+            logger.log("DATABASE", f"Cache miss {cache_id} - Fetch avec verrou")
             anime_data = await animesama_details.fetch_complete_anime_data(anime_slug)
             if anime_data:
                 await set_metadata_to_cache(cache_id, anime_data)
             return anime_data
             
     except LockAcquisitionError:
-        logger.warning(f"🔒 DATABASE: Verrou impossible {anime_slug}, tentative sans verrou")
+        logger.log("WARNING", f"DATABASE: Verrou impossible {anime_slug}, tentative sans verrou")
         anime_data = await animesama_details.fetch_complete_anime_data(anime_slug)
         if anime_data:
             await set_metadata_to_cache(cache_id, anime_data)
         return anime_data
     except Exception as e:
-        logger.error(f"🐍 ANIMESAMA: Erreur inattendue détails {anime_slug}: {e}")
+        logger.log("ERROR", f"ANIMESAMA: Erreur inattendue détails {anime_slug}: {e}")
         return None

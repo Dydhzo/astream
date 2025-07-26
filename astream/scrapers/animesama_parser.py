@@ -63,7 +63,7 @@ def parse_anime_card(card) -> Optional[Dict[str, Any]]:
         return None
         
     except Exception as e:
-        logger.warning(f"🐍 ANIMESAMA: Erreur lors du parsing de la carte anime: {e}")
+        logger.log("WARNING", f"ANIMESAMA: Erreur lors du parsing de la carte anime: {e}")
         return None
 
 
@@ -145,7 +145,7 @@ def parse_pepites_card(card) -> Optional[Dict[str, Any]]:
         return None
         
     except Exception as e:
-        logger.warning(f"🐍 ANIMESAMA: Erreur lors du parsing de la carte Pépites: {e}")
+        logger.log("WARNING", f"ANIMESAMA: Erreur lors du parsing de la carte Pépites: {e}")
         return None
 
 
@@ -208,7 +208,7 @@ def parse_anime_details_from_html(soup: BeautifulSoup, anime_slug: str) -> Dict[
         return anime_data
         
     except Exception as e:
-        logger.warning(f"🐍 ANIMESAMA: Erreur lors du parsing des détails {anime_slug}: {e}")
+        logger.log("WARNING", f"ANIMESAMA: Erreur lors du parsing des détails {anime_slug}: {e}")
         return {
             "slug": anime_slug,
             "title": "",
@@ -240,7 +240,7 @@ def parse_languages_from_html(html: str) -> List[str]:
         return sorted(languages) if languages else ["VOSTFR"]
         
     except Exception as e:
-        logger.warning(f"🐍 ANIMESAMA: Erreur détection langues HTML: {e}")
+        logger.log("WARNING", f"ANIMESAMA: Erreur détection langues HTML: {e}")
         return ["VOSTFR"]
 
 
@@ -254,7 +254,7 @@ def parse_seasons_from_html(html: str, anime_slug: str, base_url: str) -> List[D
         season_matches = PANNEAU_ANIME_PATTERN.findall(html)
         
         if not season_matches:
-            logger.warning(f"🐍 ANIMESAMA: Aucun panneauAnime() pour {anime_slug}")
+            logger.log("WARNING", f"ANIMESAMA: Aucun panneauAnime() pour {anime_slug}")
             return []
         
         
@@ -316,7 +316,7 @@ def parse_seasons_from_html(html: str, anime_slug: str, base_url: str) -> List[D
         return seasons
         
     except Exception as e:
-        logger.error(f"🐍 ANIMESAMA: Échec parsing saisons {anime_slug}: {e}")
+        logger.log("ERROR", f"ANIMESAMA: Échec parsing saisons {anime_slug}: {e}")
         return []
 
 
@@ -418,11 +418,11 @@ def parse_season_name(name: str, url: str) -> Optional[Dict[str, Any]]:
                         "is_sub_season": False
                     }
         
-        logger.warning(f"🐍 ANIMESAMA: Parser nom saison impossible: '{name}' (URL: '{url}')")
+        logger.log("WARNING", f"ANIMESAMA: Parser nom saison impossible: '{name}' (URL: '{url}')")
         return None
         
     except Exception as e:
-        logger.warning(f"🐍 ANIMESAMA: Erreur parsing '{name}': {e}")
+        logger.log("WARNING", f"ANIMESAMA: Erreur parsing '{name}': {e}")
         return None
 
 
@@ -453,11 +453,11 @@ def parse_film_titles_from_html(html: str) -> List[str]:
         # Extraire les titres des films depuis les appels newSPF("titre")
         film_titles = NEWSPF_PATTERN.findall(html)
         
-        logger.debug(f"🔍 DEBUG: Titres films extraits: {film_titles}")
+        logger.log("DEBUG", f"Titres films extraits: {film_titles}")
         return [title.strip() for title in film_titles]
         
     except Exception as e:
-        logger.warning(f"🐍 ANIMESAMA: Erreur extraction titres films: {e}")
+        logger.log("WARNING", f"ANIMESAMA: Erreur extraction titres films: {e}")
         return []
 
 
@@ -511,7 +511,7 @@ def parse_recent_episodes_card(card) -> Optional[Dict[str, Any]]:
         }
         
     except Exception as e:
-        logger.warning(f"🐍 ANIMESAMA: Erreur parsing carte recent episodes: {e}")
+        logger.log("WARNING", f"ANIMESAMA: Erreur parsing carte recent episodes: {e}")
         return None
 
 
@@ -583,10 +583,6 @@ def parse_sortie_card(card) -> Optional[Dict[str, Any]]:
         }
         
     except Exception as e:
-        logger.warning(f"🐍 ANIMESAMA: Erreur parsing carte sortie: {e}")
+        logger.log("WARNING", f"ANIMESAMA: Erreur parsing carte sortie: {e}")
         return None
 
-
-def parse_classique_card(card) -> Optional[Dict[str, Any]]:
-    """Parse une carte de la section 'Classiques'."""
-    return parse_sortie_card(card)

@@ -31,7 +31,7 @@ class RateLimiter:
             
             if time_since_last < delay:
                 wait_time = delay - time_since_last
-                logger.debug(f"⚡ PERFORMANCE: Rate limiting IP {client_ip}: attente {wait_time:.2f}s")
+                logger.log("PERFORMANCE", f"Rate limiting IP {client_ip}: attente {wait_time:.2f}s")
                 await asyncio.sleep(wait_time)
             
             self._last_request_times[client_ip] = time.time()

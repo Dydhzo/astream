@@ -23,7 +23,7 @@ async def setup_database():
         current_version = await database.fetch_val("SELECT version FROM db_version WHERE id = 1")
 
         if current_version != DATABASE_VERSION:
-            logger.info(f"🔒 DATABASE: Migration v{current_version} → v{DATABASE_VERSION}")
+            logger.log("DATABASE", f"Migration v{current_version} → v{DATABASE_VERSION}")
 
             if settings.DATABASE_TYPE == "sqlite":
                 allowed_tables = {'scrape_lock', 'metadata'}
@@ -31,17 +31,17 @@ async def setup_database():
                 for table in tables:
                     table_name = table['name']
                     if table_name not in allowed_tables:
-                        logger.warning(f"🔒 DATABASE: Table non autorisée ignorée: {table_name}")
+                        logger.log("WARNING", f"Table non autorisée ignorée: {table_name}")
                         continue
                     if not table_name.replace('_', '').isalnum() or len(table_name) > 64:
-                        logger.warning(f"🔒 DATABASE: Table format nom invalide ignorée: {table_name}")
+                        logger.log("WARNING", f"Table format nom invalide ignorée: {table_name}")
                         continue
                     # Sécurisation supplémentaire : double validation du nom de table
                     if table_name in allowed_tables and table_name.replace('_', '').isalnum():
                         await database.execute("DROP TABLE IF EXISTS " + table_name)
-                        logger.info(f"🔒 DATABASE: Table supprimée: {table_name}")
+                        logger.log("DATABASE", f"Table supprimée: {table_name}")
                     else:
-                        logger.error(f"🔒 DATABASE: Tentative suppression table non autorisée: {table_name}")
+                        logger.log("ERROR", f"Tentative suppression table non autorisée: {table_name}")
             else:
                 await database.execute("""
                     DO $$ DECLARE r RECORD;
@@ -56,7 +56,7 @@ async def setup_database():
                 await database.execute("INSERT OR REPLACE INTO db_version VALUES (1, :version)", {"version": DATABASE_VERSION})
             else:
                 await database.execute("INSERT INTO db_version VALUES (1, :version) ON CONFLICT (id) DO UPDATE SET version = :version", {"version": DATABASE_VERSION})
-            logger.info(f"🚀 ASTREAM: Migration base de données vers v{DATABASE_VERSION} terminée")
+            logger.log("DATABASE", f"Migration base de données vers v{DATABASE_VERSION} terminée")
 
         await database.execute("CREATE TABLE IF NOT EXISTS scrape_lock (lock_key TEXT PRIMARY KEY, instance_id TEXT, timestamp INTEGER, expires_at INTEGER)")
         await database.execute("CREATE TABLE IF NOT EXISTS metadata (id TEXT PRIMARY KEY, data TEXT, timestamp REAL NOT NULL, expires_at REAL)")
@@ -80,7 +80,7 @@ async def setup_database():
         await database.execute("DELETE FROM metadata WHERE expires_at IS NOT NULL AND expires_at < :current_time;", {"current_time": current_time})
 
     except Exception as e:
-        logger.error(f"🔒 DATABASE: Erreur configuration base de données: {e}")
+        logger.log("ERROR", f"Erreur configuration base de données: {e}")
 
 
 async def cleanup_expired_locks():
@@ -90,7 +90,7 @@ async def cleanup_expired_locks():
             current_time = int(time.time())
             await database.execute("DELETE FROM scrape_lock WHERE expires_at < :current_time", {"current_time": current_time})
         except Exception as e:
-            logger.error(f"🔒 DATABASE: Erreur nettoyage périodique verrous: {e}")
+            logger.log("ERROR", f"Erreur nettoyage périodique verrous: {e}")
         await asyncio.sleep(60)
 
 
@@ -161,7 +161,7 @@ async def _get_intelligent_ttl(cache_id: str) -> int:
         return settings.EPISODE_PLAYERS_TTL
         
     except Exception as e:
-        logger.warning(f"⚡ PERFORMANCE: Erreur calcul TTL intelligent '{cache_id}': {e}")
+        logger.log("PERFORMANCE", f"Erreur calcul TTL intelligent '{cache_id}': {e}")
         return settings.EPISODE_PLAYERS_TTL
 
 
@@ -185,16 +185,16 @@ async def acquire_lock(lock_key: str, instance_id: str, duration: int = None) ->
                 deleted = await database.execute("DELETE FROM scrape_lock WHERE lock_key = :lock_key AND expires_at < :current_time", {"lock_key": lock_key, "current_time": current_time})
                 return await acquire_lock(lock_key, instance_id, duration) if deleted else False
             if existing_lock["instance_id"] == instance_id:
-                logger.debug(f"🔒 DATABASE: Verrou acquis: {lock_key}")
+                logger.log("DEBUG", f"Verrou acquis: {lock_key}")
                 return True
             else:
-                logger.debug(f"🔒 DATABASE: Verrou déjà détenu par autre instance: {lock_key}")
+                logger.log("DEBUG", f"Verrou déjà détenu par autre instance: {lock_key}")
                 return False
         
-        logger.debug(f"🔒 DATABASE: Verrou acquis: {lock_key}")
+        logger.log("DEBUG", f"Verrou acquis: {lock_key}")
         return True
     except Exception as e:
-        logger.warning(f"🔒 DATABASE: Échec acquisition verrou {lock_key}: {e}")
+        logger.log("WARNING", f"Échec acquisition verrou {lock_key}: {e}")
         return False
 
 
@@ -202,10 +202,10 @@ async def release_lock(lock_key: str, instance_id: str) -> bool:
     """Libère un verrou distribué pour la clé donnée."""
     try:
         await database.execute("DELETE FROM scrape_lock WHERE lock_key = :lock_key AND instance_id = :instance_id", {"lock_key": lock_key, "instance_id": instance_id})
-        logger.debug(f"🔒 DATABASE: Verrou libéré: {lock_key}")
+        logger.log("DEBUG", f"Verrou libéré: {lock_key}")
         return True
     except Exception as e:
-        logger.warning(f"🔒 DATABASE: Échec libération verrou {lock_key}: {e}")
+        logger.log("WARNING", f"Échec libération verrou {lock_key}: {e}")
         return False
 
 
@@ -224,10 +224,10 @@ class DistributedLock:
         while time.time() - start_time < timeout:
             self.acquired = await acquire_lock(self.lock_key, self.instance_id, self.duration)
             if self.acquired:
-                logger.debug(f"🔒 DATABASE: Verrou acquis {self.lock_key} après {time.time() - start_time:.2f}s")
+                logger.log("DEBUG", f"Verrou acquis {self.lock_key} après {time.time() - start_time:.2f}s")
                 return self
             
-            logger.debug(f"🔒 DATABASE: Attente verrou {self.lock_key}...")
+            logger.log("DEBUG", f"Attente verrou {self.lock_key}...")
             await asyncio.sleep(1)
             
         raise LockAcquisitionError(f"Impossible d'acquérir le verrou {self.lock_key} après {timeout}s")
@@ -247,4 +247,4 @@ async def teardown_database():
     try:
         await database.disconnect()
     except Exception as e:
-        logger.error(f"🔒 DATABASE: Erreur fermeture base de données: {e}")
+        logger.log("ERROR", f"Erreur fermeture base de données: {e}")

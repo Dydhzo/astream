@@ -21,7 +21,9 @@ def setup_logger():
     logger.level("API", no=45, icon="📡", color="<fg #2196F3>")
     logger.level("STREAM", no=42, icon="🎬", color="<fg #FF9800>")
     logger.level("DATABASE", no=40, icon="🔒", color="<fg #9C27B0>")
+    logger.level("PROXY", no=37, icon="🌐", color="<fg #00BCD4>")
     logger.level("PERFORMANCE", no=35, icon="⚡", color="<fg #FFEB3B>")
+    logger.level("DATASET", no=33, icon="📦", color="<fg #607D8B>")
     
     # Niveaux standards avec icônes
     logger.level("INFO", icon="💡", color="<fg #00BCD4>")
@@ -54,8 +56,8 @@ def setup_logger():
 
 
     if log_level == "PRODUCTION":
-        logger.log("ASTREAM", f"🏭 MODE PRODUCTION - Logs essentiels uniquement")
+        logger.log("ASTREAM", f"MODE PRODUCTION - Logs essentiels uniquement")
     else:
-        logger.log("ASTREAM", f"🛠️ MODE DEBUG - Logs détaillés activés")
+        logger.log("ASTREAM", f"MODE DEBUG - Logs détaillés activés")
 
 setup_logger()

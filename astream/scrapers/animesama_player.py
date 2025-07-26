@@ -7,13 +7,14 @@ from astream.utils.database import get_metadata_from_cache, set_metadata_to_cach
 from astream.scrapers.animesama_player_extractor import AnimeSamaPlayerExtractor
 from astream.scrapers.animesama_video_resolver import AnimeSamaVideoResolver
 from astream.config.app_settings import settings
+from astream.utils.stream_formatter import format_stream_for_stremio
 
 
 class AnimeSamaPlayer(BaseScraper):
     """Lecteur intelligent d'épisodes anime-sama avec mappage automatique."""
     
     def __init__(self, client):
-        super().__init__(client, "https://anime-sama.fr")
+        super().__init__(client, settings.ANIMESAMA_URL)
         self.extractor = AnimeSamaPlayerExtractor(client)
         self.resolver = AnimeSamaVideoResolver(client)
 
@@ -25,17 +26,17 @@ class AnimeSamaPlayer(BaseScraper):
 
     async def get_episode_streams(self, anime_slug: str, season_data: Dict[str, Any], episode_number: int, language_filter: Optional[str] = None, config: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """Récupère les streams pour un épisode."""
-        logger.debug(f"🎬 STREAM: Génération streams temps réel {anime_slug} S{season_data.get('season_number')}E{episode_number}")
+        logger.log("STREAM", f"Génération streams temps réel {anime_slug} S{season_data.get('season_number')}E{episode_number}")
         
         try:
-            logger.debug(f"🎬 STREAM: Récupération streams {anime_slug} S{season_data.get('season_number')}E{episode_number}")
+            logger.log("STREAM", f"Récupération streams {anime_slug} S{season_data.get('season_number')}E{episode_number}")
             
             player_urls_with_language = await self.extractor.extract_player_urls_smart_mapping_with_language(
                 anime_slug, season_data, episode_number, language_filter, config
             )
             
             if not player_urls_with_language:
-                logger.warning(f"🎬 STREAM: Aucun player trouvé {anime_slug} S{season_data.get('season_number')}E{episode_number}")
+                logger.log("WARNING", f"STREAM: Aucun player trouvé {anime_slug} S{season_data.get('season_number')}E{episode_number}")
                 return []
             
             video_urls_with_language = await self.resolver.extract_video_urls_from_players_with_language(
@@ -47,32 +48,24 @@ class AnimeSamaPlayer(BaseScraper):
             
             for video_data in video_urls_with_language:
                 video_url = video_data["url"]
-                detected_language = video_data["language"]
+                detected_language = video_data["language"] or "VOSTFR"
                 
-                display_language = detected_language.upper() if detected_language else "VOSTFR"
-                
-                streams.append({
-                    "name": f"🐍 {settings.ADDON_NAME}",
-                    "title": f"🔗 {video_url}\n🌍 {display_language}",
-                    "url": video_url,
-                    "behaviorHints": {
-                        "notWebReady": True,
-                        "bingeGroup": f"astream-{anime_slug}-{season_num}"
-                    }
-                })
+                streams.append(
+                    format_stream_for_stremio(video_url, detected_language, anime_slug, season_num)
+                )
             
             
-            logger.info(f"✅ SUCCESS: Trouvé {len(streams)} streams {anime_slug} S{season_num}E{episode_number}")
+            logger.log("INFO", f"SUCCESS: Trouvé {len(streams)} streams {anime_slug} S{season_num}E{episode_number}")
             return streams
             
         except Exception as e:
-            logger.error(f"❌ ERROR: Erreur récupération streams: {e}")
+            logger.log("ERROR", f"Erreur récupération streams: {e}")
             return []
 
     async def get_available_episodes_count(self, anime_slug: str, season_data: Dict[str, Any]) -> Dict[str, int]:
         """Compte les épisodes disponibles par langue."""
         try:
-            logger.debug(f"🔍 DEBUG: Comptage épisodes {anime_slug} S{season_data.get('season_number')}")
+            logger.log("DEBUG", f"Comptage épisodes {anime_slug} S{season_data.get('season_number')}")
             
             languages_to_check = ["vostfr", "vf", "vf1", "vf2"]
             episode_counts = {}
@@ -83,7 +76,7 @@ class AnimeSamaPlayer(BaseScraper):
                     main_season_url = f"{self.base_url}/catalogue/{anime_slug}/{season_path}/{language.lower()}/"
                     
                     main_count = await self.extractor._get_episode_count_from_url(main_season_url)
-                    logger.debug(f"🔍 DEBUG: Saison principale {anime_slug} S{season_data.get('season_number')} ({language}): {main_count} épisodes")
+                    logger.log("DEBUG", f"Saison principale {anime_slug} S{season_data.get('season_number')} ({language}): {main_count} épisodes")
                     
                     total_count = main_count
                     for sub_season in season_data.get("sub_seasons", []):
@@ -94,16 +87,16 @@ class AnimeSamaPlayer(BaseScraper):
                                 sub_count = await self.extractor._get_episode_count_from_url(sub_url)
                                 if sub_count > 0:
                                     total_count += sub_count
-                                    logger.debug(f"🔍 DEBUG: Sous-saison {sub_path} ({language}): +{sub_count} épisodes")
+                                    logger.log("DEBUG", f"Sous-saison {sub_path} ({language}): +{sub_count} épisodes")
                             except Exception as e:
-                                logger.debug(f"🔍 DEBUG: Erreur sous-saison {sub_path} ({language}): {e}")
+                                logger.log("DEBUG", f"Erreur sous-saison {sub_path} ({language}): {e}")
                                 continue
                     
-                    logger.debug(f"🔍 DEBUG: Total {anime_slug} S{season_data.get('season_number')} ({language}): {total_count} épisodes")
+                    logger.log("DEBUG", f"Total {anime_slug} S{season_data.get('season_number')} ({language}): {total_count} épisodes")
                     return language, total_count
                     
                 except Exception as e:
-                    logger.warning(f"⚠️ WARNING: Erreur comptage langue {language}: {e}")
+                    logger.log("WARNING", f"Erreur comptage langue {language}: {e}")
                     return language, 0
             
             tasks = [count_for_language_with_sub_seasons(lang) for lang in languages_to_check]
@@ -113,12 +106,12 @@ class AnimeSamaPlayer(BaseScraper):
                 episode_counts[language] = count
             
             total_episodes = max(episode_counts.values()) if episode_counts else 0
-            logger.debug(f"🔍 DEBUG: {anime_slug} S{season_data.get('season_number')}: {total_episodes} épisodes TOTAL")
+            logger.log("DEBUG", f"{anime_slug} S{season_data.get('season_number')}: {total_episodes} épisodes TOTAL")
             
             return episode_counts
             
         except Exception as e:
-            logger.error(f"❌ ERROR: Erreur comptage épisodes: {e}")
+            logger.log("ERROR", f"Erreur comptage épisodes: {e}")
             return {}
 
     def map_episode_to_season(self, episode_number: int, season_data: Dict[str, Any], episode_counts: Dict[str, int]) -> Dict[str, Any]:
@@ -158,7 +151,7 @@ class AnimeSamaPlayer(BaseScraper):
             }
             
         except Exception as e:
-            logger.warning(f"⚠️ WARNING: Erreur mapping épisode {episode_number}: {e}")
+            logger.log("WARNING", f"Erreur mapping épisode {episode_number}: {e}")
             return {
                 "season_path": season_data.get("path", ""),
                 "target_episode": episode_number,

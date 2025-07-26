@@ -5,6 +5,7 @@ from astream.utils.logger import logger
 from astream.utils.animesama_utils import create_seasons_dict
 from astream.scrapers.animesama_catalog import AnimeSamaCatalog
 from astream.scrapers.animesama_details import AnimeSamaDetails, get_or_fetch_anime_details
+from astream.config.app_settings import settings
 
 
 class AnimeSamaAPI(BaseClient):
@@ -12,7 +13,7 @@ class AnimeSamaAPI(BaseClient):
     
     def __init__(self, client: HttpClient):
         super().__init__()
-        self.base_url = "https://anime-sama.fr"
+        self.base_url = settings.ANIMESAMA_URL
         self.client = client
         self._current_client_ip = None
         
@@ -30,7 +31,7 @@ class AnimeSamaAPI(BaseClient):
         return await self.catalog.get_homepage_content()
 
     async def search_anime(self, query: str, language: Optional[str] = None, genre: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Recherche des animes sur anime-sama."""
+        """Recherche des anime sur anime-sama."""
         return await self.catalog.search_anime(query, language, genre)
 
     async def get_anime_details(self, anime_slug: str) -> Optional[Dict[str, Any]]:
@@ -50,19 +51,19 @@ class AnimeSamaAPI(BaseClient):
         try:
             anime_data = await get_or_fetch_anime_details(self.details, anime_slug)
             if not anime_data:
-                logger.error(f"🐍 ANIMESAMA: Impossible de récupérer les données pour {anime_slug}")
+                logger.log("ERROR", f"ANIMESAMA: Impossible de récupérer les données pour {anime_slug}")
                 return []
             
             seasons = anime_data.get("seasons", [])
             if not seasons:
-                logger.warning(f"🐍 ANIMESAMA: Aucune saison trouvée pour {anime_slug}")
+                logger.log("WARNING", f"ANIMESAMA: Aucune saison trouvée pour {anime_slug}")
                 return []
             
             seasons_dict = create_seasons_dict(seasons)
             
             season_data = seasons_dict.get(season_number)
             if not season_data:
-                logger.warning(f"🐍 ANIMESAMA: Saison {season_number} non trouvée pour {anime_slug}")
+                logger.log("WARNING", f"ANIMESAMA: Saison {season_number} non trouvée pour {anime_slug}")
                 return []
             
             from astream.scrapers.animesama_player import AnimeSamaPlayer
@@ -72,5 +73,5 @@ class AnimeSamaAPI(BaseClient):
             return await player.get_episode_streams(anime_slug, season_data, episode_number, language_filter)
             
         except Exception as e:
-            logger.error(f"🐍 ANIMESAMA: Erreur récupération streams pour {anime_slug}: {e}")
+            logger.log("ERROR", f"ANIMESAMA: Erreur récupération streams pour {anime_slug}: {e}")
             return []

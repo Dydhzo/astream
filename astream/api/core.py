@@ -6,7 +6,7 @@ import re
 import asyncio
 
 from astream.config.app_settings import settings, web_config
-from astream.utils.config_validator import config_check
+from astream.utils.config_validator import validate_config
 from astream.scrapers.animesama import AnimeSamaAPI
 from astream.scrapers.animesama_details import get_or_fetch_anime_details
 from astream.scrapers.animesama_player import AnimeSamaPlayer
@@ -77,7 +77,7 @@ async def manifest(request: Request, b64config: str = None, animesama_api: Anime
         "id": settings.ADDON_ID,
         "name": settings.ADDON_NAME,
         "description": f"{settings.ADDON_NAME} – Addon non officiel pour accéder au contenu d'Anime-Sama",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "catalogs": [
             {
                 "type": "anime",
@@ -101,11 +101,11 @@ async def manifest(request: Request, b64config: str = None, animesama_api: Anime
         "behaviorHints": {"configurable": True, "configurationRequired": False},
     }
 
-    config = config_check(b64config)
+    config = validate_config(b64config)
     if not config:
-        base_manifest["name"] = "❌ | AStream"
+        base_manifest["name"] = "| AStream"
         base_manifest["description"] = (
-            f"⚠️ CONFIGURATION OBSELETE, VEUILLEZ RECONFIGURER SUR {request.url.scheme}://{request.url.netloc} ⚠️"
+            f"CONFIGURATION OBSELETE, VEUILLEZ RECONFIGURER SUR {request.url.scheme}://{request.url.netloc}"
         )
         return base_manifest
 
@@ -118,9 +118,9 @@ async def manifest(request: Request, b64config: str = None, animesama_api: Anime
     try:
         unique_genres = await extract_unique_genres(animesama_api)
         base_manifest["catalogs"][0]["extra"][2]["options"] = unique_genres
-        logger.info(f"📋 MANIFEST - Ajout de {len(unique_genres)} options de genre depuis le catalogue")
+        logger.log("API", f"MANIFEST - Ajout de {len(unique_genres)} options de genre depuis le catalogue")
     except Exception as e:
-        logger.error(f"❌ MANIFEST - Echec de l'extraction des genres: {e}")
+        logger.log("ERROR", f"MANIFEST - Echec de l'extraction des genres: {e}")
 
     return base_manifest
 
@@ -130,16 +130,16 @@ async def extract_unique_genres(animesama_api: AnimeSamaAPI) -> list[str]:
     cached_data = await get_metadata_from_cache("as:homepage:content")
 
     if not cached_data:
-        logger.debug("📦 CACHE MISS: as:homepage:content - Recuperation depuis anime-sama")
-        animes_data = await animesama_api.get_homepage_content()
-        await set_metadata_to_cache("as:homepage:content", {"animes": animes_data, "total": len(animes_data)})
-        logger.debug("✅ CACHE SAUVEGARDE: as:homepage:content")
+        logger.log("DEBUG", "CACHE MISS: as:homepage:content - Recuperation depuis anime-sama")
+        anime_data = await animesama_api.get_homepage_content()
+        await set_metadata_to_cache("as:homepage:content", {"anime": anime_data, "total": len(anime_data)})
+        logger.log("DEBUG", "CACHE SAUVEGARDE: as:homepage:content")
     else:
-        logger.debug("✅ CACHE HIT: as:homepage:content")
-        animes_data = cached_data.get("animes", [])
+        logger.log("DEBUG", "CACHE HIT: as:homepage:content")
+        anime_data = cached_data.get("anime", [])
 
     unique_genres = set()
-    for anime in animes_data:
+    for anime in anime_data:
         genres_raw = anime.get('genres', '')
         if genres_raw:
             genres = [g.strip() for g in genres_raw.split(',') if g.strip()]
@@ -147,7 +147,7 @@ async def extract_unique_genres(animesama_api: AnimeSamaAPI) -> list[str]:
 
     sorted_genres = sorted(list(unique_genres))
 
-    logger.debug(f"🎭 GENRES - Extraction de {len(sorted_genres)} genres uniques depuis le cache catalog")
+    logger.log("DEBUG", f"GENRES - Extraction de {len(sorted_genres)} genres uniques depuis le cache catalog")
     return sorted_genres
 
 
@@ -160,39 +160,39 @@ async def extract_unique_genres(animesama_api: AnimeSamaAPI) -> list[str]:
 @main.get("/catalog/anime/animesama_catalog/search={search}&genre={genre}.json")
 @main.get("/{b64config}/catalog/anime/animesama_catalog/search={search}&genre={genre}.json")
 async def animesama_catalog(request: Request, b64config: str = None, search: str = None, genre: str = None):
-    """Fournit le catalogue d'animes."""
+    """Fournit le catalogue d'anime."""
     try:
         if not search and "search" in request.query_params:
             search = request.query_params.get("search")
         if not genre and "genre" in request.query_params:
             genre = request.query_params.get("genre")
 
-        logger.info(f"🔍 CATALOG - Catalogue Anime-Sama demandé, recherche: {search}, genre: {genre}")
+        logger.log("API", f"CATALOG - Catalogue Anime-Sama demandé, recherche: {search}, genre: {genre}")
 
         # Configuration et IP client
-        config = config_check(b64config)
+        config = validate_config(b64config)
         language_filter = config.get("language") if config and config.get("language") != "Tout" else None
         client_ip = extract_client_ip(request)
         
         # Service layer
         service = AnimeSamaService()
-        animes_data = await service.get_catalog_data(search, genre, language_filter, client_ip)
+        anime_data = await service.get_catalog_data(search, genre, language_filter, client_ip)
         
-        logger.info(f"Traitement de {len(animes_data)} animes.")
+        logger.log("API", f"Traitement de {len(anime_data)} anime.")
 
-        config = config_check(b64config)
+        config = validate_config(b64config)
 
         metas = []
-        for anime in animes_data:
+        for anime in anime_data:
             anime_title = anime.get('title', '').strip()
             anime_slug = anime.get('slug', '')
             
             # Protection: utiliser slug si pas de titre
             if not anime_title:
                 anime_title = anime_slug.replace('-', ' ').title() if anime_slug else 'Titre indisponible'
-                logger.warning(f"⚠️ CATALOG - Pas de titre pour {anime_slug}, utilisation de '{anime_title}'")
+                logger.log("WARNING", f"CATALOG - Pas de titre pour {anime_slug}, utilisation de '{anime_title}'")
             
-            logger.debug(f"📺 CATALOG - Anime: {anime_slug} -> Titre: '{anime_title}'")
+            logger.log("DEBUG", f"CATALOG - Anime: {anime_slug} -> Titre: '{anime_title}'")
             
             genres_raw = anime.get('genres', '')
             genres = [g.strip() for g in genres_raw.split(',') if g.strip()] if genres_raw else []
@@ -217,18 +217,18 @@ async def animesama_catalog(request: Request, b64config: str = None, search: str
             metas.append(meta)
 
         if search and genre:
-            logger.info(f"🔍 CATALOG - Recherche '{search}' + Genre '{genre}': {len(metas)} animes trouvés")
+            logger.log("API", f"CATALOG - Recherche '{search}' + Genre '{genre}': {len(metas)} anime trouvés")
         elif search:
-            logger.info(f"🔍 CATALOG - Recherche '{search}': {len(metas)} animes trouvés")
+            logger.log("API", f"CATALOG - Recherche '{search}': {len(metas)} anime trouvés")
         elif genre:
-            logger.info(f"🎭 CATALOG - Genre '{genre}': {len(metas)} animes trouvés")
+            logger.log("API", f"CATALOG - Genre '{genre}': {len(metas)} anime trouvés")
         else:
-            logger.info(f"🔍 CATALOG - Retour de tous les {len(metas)} animes valides")
+            logger.log("API", f"CATALOG - Retour de tous les {len(metas)} anime valides")
 
         return {"metas": metas}
         
     except Exception as e:
-        logger.error(f"Erreur dans le catalogue: {e}")
+        logger.log("ERROR", f"Erreur dans le catalogue: {e}")
         raise AnimeNotFoundException(f"Erreur catalogue: {str(e)}")
 
 
@@ -287,7 +287,7 @@ async def animesama_meta(request: Request, id: str, b64config: str = None, anime
                 else:
                     return season_number, 12
         except Exception as e:
-            logger.warning(f"Impossible de détecter le nombre d'épisodes pour {anime_slug} S{season_number}: {e}")
+            logger.log("WARNING", f"Impossible de détecter le nombre d'épisodes pour {anime_slug} S{season_number}: {e}")
             if season_number == 998:
                 return season_number, 5
             elif season_number == 0:  # Spéciaux
@@ -297,7 +297,7 @@ async def animesama_meta(request: Request, id: str, b64config: str = None, anime
             else:  # Saisons normales
                 return season_number, 12
     
-    logger.info(f"🚀 Détection parallèle des épisodes pour {len(seasons)} saisons de {anime_slug}")
+    logger.log("API", f"Détection parallèle des épisodes pour {len(seasons)} saisons de {anime_slug}")
     detection_tasks = [detect_episodes_for_season(season) for season in seasons]
     episodes_results = await asyncio.gather(*detection_tasks)
     
@@ -310,24 +310,24 @@ async def animesama_meta(request: Request, id: str, b64config: str = None, anime
         
         for episode_num in range(1, max_episodes + 1):
             if season_number == 998:
-                logger.info(f"🎬 FILM DETECTE - anime: {anime_slug}, saison: {season_number}, episode: {episode_num}")
+                logger.log("API", f"FILM DETECTE - anime: {anime_slug}, saison: {season_number}, episode: {episode_num}")
                 try:
                     film_title = await animesama_api.get_film_title(anime_slug, episode_num)
-                    logger.info(f"🎬 FILM - Fonction get_film_title appelée, résultat: '{film_title}'")
+                    logger.log("API", f"FILM - Fonction get_film_title appelée, résultat: '{film_title}'")
                     if film_title:
                         episode_title = film_title
                         episode_overview = film_title
-                        logger.info(f"🎬 FILM - Titre final utilisé: '{episode_title}'")
+                        logger.log("API", f"FILM - Titre final utilisé: '{episode_title}'")
                     else:
                         episode_title = f"Film {episode_num}"
                         episode_overview = f"Film {episode_num}"
-                        logger.warning(f"🎬 FILM - Titre par défaut utilisé: '{episode_title}'")
+                        logger.log("WARNING", f"FILM - Titre par défaut utilisé: '{episode_title}'")
                 except Exception as e:
-                    logger.error(f"🎬 FILM - Erreur récupération titre {anime_slug} #{episode_num}: {e}")
+                    logger.log("ERROR", f"FILM - Erreur récupération titre {anime_slug} #{episode_num}: {e}")
                     episode_title = f"Film {episode_num}"
                     episode_overview = f"Film {episode_num}"
             else:
-                logger.debug(f"📺 EPISODE - anime: {anime_slug}, saison: {season_number}, episode: {episode_num}")
+                logger.log("DEBUG", f"EPISODE - anime: {anime_slug}, saison: {season_number}, episode: {episode_num}")
                 episode_title = f"Episode {episode_num}"
                 episode_overview = anime_data.get('synopsis', f"Episode {episode_num} de {season_name}")
             
