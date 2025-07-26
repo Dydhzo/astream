@@ -163,10 +163,10 @@ class HttpClient(BaseClient):
         if not url.startswith('http'):
             url = f"{self.base_url.rstrip('/')}/{url.lstrip('/')}"
         
-        # Correction vidmoly → moly (insensible à la casse)
-        if "vidmoly" in url.lower():
+        # Correction vidmoly.to → moly.to (insensible à la casse)
+        if "vidmoly.to" in url.lower():
             import re
-            url = re.sub(r'vidmoly', 'moly', url, flags=re.IGNORECASE)
+            url = re.sub(r'vidmoly\.to', 'moly.to', url, flags=re.IGNORECASE)
         
         # Sélectionner le client approprié selon l'URL
         client = self._get_client_for_url(url)
