@@ -9,14 +9,14 @@ if "%~5"=="" (
     echo Usage: %0 ^<slug^> ^<season^> ^<episode^> ^<language^> ^<url^>
     echo.
     echo Exemples:
-    echo   %0 one-piece 1 1 VOSTFR "https://sibnet.ru/shell.php?videoid=123456"
-    echo   %0 naruto 4 21 VF "https://vidmoly.to/embed-abc123.html"
-    echo   %0 bleach 998 1 VOSTFR "https://sendvid.com/embed/film1"
+    echo   %0 one-piece 1 1 VOSTFR "https://domaine1.com/embed/test-1"
+    echo   %0 naruto 4 21 VF "https://domaine2.com/embed/test-2"
+    echo   %0 bleach 990 1 VOSTFR "https://domaine3.com/embed/test-3"
     echo.
     echo Saisons speciales:
     echo   0   = OAV/Speciaux
-    echo   998 = Films
-    echo   999 = Hors-serie
+    echo   990 = Films
+    echo   991 = Hors-serie
     exit /b 1
 )
 
@@ -40,100 +40,67 @@ if %ERRORLEVEL% neq 0 (
     set "PYTHON_CMD=python"
 )
 
-:: Creer script Python temporaire qui recupere tous les arguments
+:: Creer script Python temporaire
 set "TEMP_SCRIPT=%TEMP%\add_dataset_%RANDOM%.py"
 
-(
-echo import json
-echo import sys
-echo.
-echo # Recuperer tous les arguments apres le script
-echo if len^(sys.argv^) ^< 6:
-echo     print^("Erreur: Nombre de parametres incorrect"^)
-echo     sys.exit^(1^)
-echo.
-echo slug = sys.argv[1]
-echo season = sys.argv[2]
-echo episode = sys.argv[3]
-echo language = sys.argv[4]
-echo.
-echo # Reconstituer l'URL complete a partir de tous les arguments restants
-echo # Cela gere le cas ou l'URL contient des espaces ou a ete decoupee
-echo url_parts = sys.argv[5:]
-echo url = ' '.join^(url_parts^)
-echo.
-echo # Valider les parametres
-echo if not slug:
-echo     print^("Erreur: Slug anime requis"^)
-echo     sys.exit^(1^)
-echo.
-echo try:
-echo     season = int^(season^)
-echo     if season ^< 0:
-echo         raise ValueError
-echo except:
-echo     print^("Erreur: Numero de saison invalide"^)
-echo     sys.exit^(1^)
-echo.
-echo try:
-echo     episode = int^(episode^)
-echo     if episode ^< 1:
-echo         raise ValueError
-echo except:
-echo     print^("Erreur: Numero d'episode invalide"^)
-echo     sys.exit^(1^)
-echo.
-echo if language not in ['VOSTFR', 'VF', 'VF1', 'VF2']:
-echo     print^("Erreur: Langue invalide. Utiliser: VOSTFR, VF, VF1, VF2"^)
-echo     sys.exit^(1^)
-echo.
-echo if not url:
-echo     print^("Erreur: URL requise"^)
-echo     sys.exit^(1^)
-echo.
-echo # Charger dataset
-echo with open^('dataset.json', 'r', encoding='utf-8'^) as f:
-echo     data = json.load^(f^)
-echo.
-echo # Trouver ou creer anime
-echo anime = None
-echo for a in data['anime']:
-echo     if a['slug'] == slug:
-echo         anime = a
-echo         break
-echo.
-echo if not anime:
-echo     anime = {'slug': slug, 'streams': []}
-echo     data['anime'].append^(anime^)
-echo.
-echo # Verifier si cette URL exacte existe deja
-echo for stream in anime['streams']:
-echo     if ^(stream['season'] == season and stream['episode'] == episode and 
-echo         stream['language'] == language and stream['url'] == url^):
-echo         print^('Cette URL est deja presente pour cet episode!'^)
-echo         sys.exit^(1^)
-echo.
-echo # Ajouter nouveau stream
-echo new_stream = {
-echo     'season': season,
-echo     'episode': episode,
-echo     'language': language,
-echo     'url': url
-echo }
-echo anime['streams'].append^(new_stream^)
-echo.
-echo # Trier: VOSTFR, VF, VF1, VF2
-echo ordre = {'VOSTFR': 0, 'VF': 1, 'VF1': 2, 'VF2': 3}
-echo anime['streams'].sort^(key=lambda x: ^(x['season'], x['episode'], ordre.get^(x['language'], 99^)^)^)
-echo.
-echo # Sauvegarder
-echo with open^('dataset.json', 'w', encoding='utf-8'^) as f:
-echo     json.dump^(data, f, ensure_ascii=False, indent=2^)
-echo.
-echo print^(f'Ajoute: {slug} S{season}E{episode} {language}'^)
-) > "%TEMP_SCRIPT%"
+echo # -*- coding: utf-8 -*- > "%TEMP_SCRIPT%"
+echo import json >> "%TEMP_SCRIPT%"
+echo import sys >> "%TEMP_SCRIPT%"
+echo. >> "%TEMP_SCRIPT%"
+echo # Recuperer arguments >> "%TEMP_SCRIPT%"
+echo if len(sys.argv) ^< 6: >> "%TEMP_SCRIPT%"
+echo     print("Erreur: Nombre de parametres incorrect") >> "%TEMP_SCRIPT%"
+echo     sys.exit(1) >> "%TEMP_SCRIPT%"
+echo. >> "%TEMP_SCRIPT%"
+echo slug = sys.argv[1] >> "%TEMP_SCRIPT%"
+echo season = int(sys.argv[2]) >> "%TEMP_SCRIPT%"
+echo episode = int(sys.argv[3]) >> "%TEMP_SCRIPT%"
+echo language = sys.argv[4] >> "%TEMP_SCRIPT%"
+echo url_parts = sys.argv[5:] >> "%TEMP_SCRIPT%"
+echo url = ' '.join(url_parts) >> "%TEMP_SCRIPT%"
+echo. >> "%TEMP_SCRIPT%"
+echo # Charger dataset >> "%TEMP_SCRIPT%"
+echo with open('dataset.json', 'r', encoding='utf-8') as f: >> "%TEMP_SCRIPT%"
+echo     data = json.load(f) >> "%TEMP_SCRIPT%"
+echo. >> "%TEMP_SCRIPT%"
+echo # Trouver ou creer anime >> "%TEMP_SCRIPT%"
+echo anime = None >> "%TEMP_SCRIPT%"
+echo for a in data['anime']: >> "%TEMP_SCRIPT%"
+echo     if a['slug'] == slug: >> "%TEMP_SCRIPT%"
+echo         anime = a >> "%TEMP_SCRIPT%"
+echo         break >> "%TEMP_SCRIPT%"
+echo. >> "%TEMP_SCRIPT%"
+echo if not anime: >> "%TEMP_SCRIPT%"
+echo     anime = {'slug': slug, 'streams': []} >> "%TEMP_SCRIPT%"
+echo     data['anime'].append(anime) >> "%TEMP_SCRIPT%"
+echo. >> "%TEMP_SCRIPT%"
+echo # Chercher stream existant >> "%TEMP_SCRIPT%"
+echo existing_stream = None >> "%TEMP_SCRIPT%"
+echo for stream in anime['streams']: >> "%TEMP_SCRIPT%"
+echo     if (stream['season'] == season and stream['episode'] == episode and stream['language'] == language): >> "%TEMP_SCRIPT%"
+echo         existing_stream = stream >> "%TEMP_SCRIPT%"
+echo         break >> "%TEMP_SCRIPT%"
+echo. >> "%TEMP_SCRIPT%"
+echo if existing_stream: >> "%TEMP_SCRIPT%"
+echo     if url in existing_stream['urls']: >> "%TEMP_SCRIPT%"
+echo         print('Cette URL est deja presente pour cet episode!') >> "%TEMP_SCRIPT%"
+echo         sys.exit(1) >> "%TEMP_SCRIPT%"
+echo     existing_stream['urls'].append(url) >> "%TEMP_SCRIPT%"
+echo else: >> "%TEMP_SCRIPT%"
+echo     new_stream = {'season': season, 'episode': episode, 'language': language, 'urls': [url]} >> "%TEMP_SCRIPT%"
+echo     anime['streams'].append(new_stream) >> "%TEMP_SCRIPT%"
+echo. >> "%TEMP_SCRIPT%"
+echo # Trier >> "%TEMP_SCRIPT%"
+echo ordre = {'VOSTFR': 0, 'VF': 1, 'VF1': 2, 'VF2': 3} >> "%TEMP_SCRIPT%"
+echo anime['streams'].sort(key=lambda x: (x['season'], x['episode'], ordre.get(x['language'], 99))) >> "%TEMP_SCRIPT%"
+echo. >> "%TEMP_SCRIPT%"
+echo # Sauvegarder >> "%TEMP_SCRIPT%"
+echo with open('dataset.json', 'w', encoding='utf-8') as f: >> "%TEMP_SCRIPT%"
+echo     json.dump(data, f, ensure_ascii=False, indent=2) >> "%TEMP_SCRIPT%"
+echo. >> "%TEMP_SCRIPT%"
+echo print(f'Ajoute: {slug} S{season}E{episode} {language}') >> "%TEMP_SCRIPT%"
 
-:: Executer le script Python en passant TOUS les parametres
+:: Executer le script Python
 %PYTHON_CMD% "%TEMP_SCRIPT%" %*
 set "RESULT=%ERRORLEVEL%"
 
@@ -142,10 +109,10 @@ del "%TEMP_SCRIPT%" 2>nul
 
 if %RESULT% equ 0 (
     echo.
-    echo 🎉 Dataset mis a jour avec succes!
+    echo Dataset mis a jour avec succes!
 ) else (
     echo.
-    echo 💥 Echec de la mise a jour du dataset
+    echo Echec de la mise a jour du dataset
 )
 
 exit /b %RESULT%
