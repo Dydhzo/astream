@@ -149,8 +149,6 @@ python -m astream.main
 Avant de lancer l'addon, vous devez définir les paramètres obligatoires dans votre fichier `.env` :
 - `ANIMESAMA_URL` : URL de Anime-Sama pour accéder au contenu
 
-**Pour plus d'informations, rejoignez ce serveur Discord : https://discord.gg/B5BmaptXtz**
-
 ### 📱 Ajout dans Stremio
 
 1. **Ouvrez Stremio**
@@ -349,3 +347,4 @@ Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de 
 <p align="center">
   Fait avec ❤️ pour la communauté anime française
 </p>
+
