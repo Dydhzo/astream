@@ -69,8 +69,8 @@
 |-----------------|------------------|-------------|
 | Saisons normales | `1, 2, 3...` | Numérotation standard |
 | Sous-saisons | `4-2, 4-3...` | Intégrées dans la saison principale (ex: saison4-2 → dans saison 4) |
-| Films | `990` | Tous les films liés à l'anime |
-| Hors-série | `991` | Épisodes hors-série |
+| Films | `998` | Tous les films liés à l'anime |
+| Hors-série | `999` | Épisodes hors-série |
 | Spéciaux/OAV | `0` | OAV et épisodes spéciaux |
 
 ---
@@ -126,7 +126,7 @@ cd astream
 
 2. **Installez les dépendances** :
 ```bash
-pip install .
+pip install -r requirements.txt
 ```
 
 3. **Configurez l'environnement** :
@@ -144,11 +144,6 @@ python -m astream.main
 
 ## ⚙️ Configuration
 
-### Configuration requise
-
-Avant de lancer l'addon, vous devez définir les paramètres obligatoires dans votre fichier `.env` :
-- `ANIMESAMA_URL` : URL de Anime-Sama pour accéder au contenu
-
 ### 📱 Ajout dans Stremio
 
 1. **Ouvrez Stremio**
@@ -164,11 +159,6 @@ Toutes les variables disponibles dans le fichier `.env` :
 
 | Variable | Description | Défaut | Type |
 |----------|-------------|---------|------|
-| **Configuration OBLIGATOIRE** |
-| `ANIMESAMA_URL` | URL de base d'anime-sama | - | URL |
-| **Configuration Addon** |
-| `ADDON_ID` | Identifiant unique de l'addon | `community.astream` | String |
-| `ADDON_NAME` | Nom affiché de l'addon | `AStream` | String |
 | **Configuration Serveur** |
 | `FASTAPI_HOST` | Adresse d'écoute du serveur | `0.0.0.0` | IP |
 | `FASTAPI_PORT` | Port d'écoute | `8000` | Port |
@@ -180,14 +170,15 @@ Toutes les variables disponibles dans le fichier `.env` :
 | `DATABASE_URL` | URL PostgreSQL (si DATABASE_TYPE=postgresql) | - | URL |
 | **Configuration Dataset** |
 | `DATASET_ENABLED` | Activer/désactiver le système de dataset | `true` | Booléen |
-| `DATASET_URL` | URL de votre dataset | - | URL |
-| `DATASET_UPDATE_INTERVAL` | Intervalle de vérification des mises à jour | `3600` (1h) | Secondes (`-1` = désactivé) |
+| `DATASET_URL` | URL du dataset à télécharger | `https://raw.githubusercontent.com/Dydhzo/astream/main/dataset.json` | URL |
+| `AUTO_UPDATE_DATASET` | Mise à jour automatique du dataset | `true` | Booléen |
+| `DATASET_UPDATE_INTERVAL` | Intervalle de vérification des mises à jour | `3600` (1h) | Secondes |
 | **Configuration Cache (secondes)** |
-| `DYNAMIC_LIST_TTL` | Cache listes et catalogues | `3600` (1h) | Secondes |
-| `EPISODE_TTL` | Cache URLs des lecteurs | `3600` (1h) | Secondes |
+| `DYNAMIC_LISTS_TTL` | Cache listes et catalogues | `3600` (1h) | Secondes |
+| `EPISODE_PLAYERS_TTL` | Cache URLs des lecteurs | `3600` (1h) | Secondes |
 | `ONGOING_ANIME_TTL` | Cache anime en cours | `3600` (1h) | Secondes |
 | `FINISHED_ANIME_TTL` | Cache anime terminés | `604800` (7j) | Secondes |
-| `PLANNING_TTL` | Cache planning anime | `3600` (1h) | Secondes |
+| `PLANNING_CACHE_TTL` | Cache planning anime | `3600` (1h) | Secondes |
 | **Scraping** |
 | `SCRAPE_LOCK_TTL` | Durée des verrous de scraping | `300` (5min) | Secondes |
 | `SCRAPE_WAIT_TIMEOUT` | Attente maximale pour un verrou | `30` | Secondes |
@@ -196,12 +187,12 @@ Toutes les variables disponibles dans le fichier `.env` :
 | `RATE_LIMIT_PER_USER` | Délai entre requêtes par IP | `1` | Secondes |
 | `PROXY_URL` | Proxy HTTP/HTTPS recommandé | - | URL |
 | `PROXY_BYPASS_DOMAINS` | Domaines qui ne doivent pas utiliser le proxy | - | String |
+| `ANIMESAMA_URL` | URL de base d'anime-sama (Worker Cloudflare) | `https://anime-sama.fr` | URL |
 | **Filtrage** |
-| `EXCLUDED_DOMAINS` | Domaines à exclure des streams | - | String |
-| **TMDB (The Movie Database)** |
-| `TMDB_API_KEY` | Clé API TMDB pour métadonnées enrichies | - | String |
-| `TMDB_TTL` | Cache TMDB en secondes | `604800` (7j) | Secondes |
+| `EXCLUDED_DOMAIN` | Domaines à exclure des streams | - | String |
 | **Personnalisation** |
+| `ADDON_ID` | Identifiant unique de l'addon | `community.astream` | String |
+| `ADDON_NAME` | Nom affiché de l'addon | `AStream` | String |
 | `CUSTOM_HEADER_HTML` | HTML personnalisé page config | - | HTML |
 | `LOG_LEVEL` | Niveau de log | `DEBUG` | `DEBUG`/`PRODUCTION` |
 
@@ -209,76 +200,16 @@ Toutes les variables disponibles dans le fichier `.env` :
 
 ## Performance
 
-### 📊 Métriques
-
-- **Temps de réponse catalogue** : < 500ms (avec cache)
-- **Résolution stream** : 1-3 secondes
-- **Consommation mémoire** : ~100MB
-- **Support concurrent** : 100+ utilisateurs simultanés
-
 ### ⚡ Optimisations
 
 - **Cache multiniveau** : Mémoire + Base de données
-- **Scraping parallèle** : Traitement concurrent des saisons
+- **Scraping parallèle** : Traitement parallèle des saisons
 - **Headers dynamiques** : Rotation User-Agent automatique
 - **Verrouillage distribué** : Évite les doublons entre instances
 
 ---
 
-## 🛠️ Développement
-
-### 📁 Structure du Projet
-
-```
-astream/
-├── main.py                     # Point d'entrée de l'application
-├── api/                        # Routes FastAPI
-│   ├── core.py                 # Manifest, catalogue, métadonnées
-│   └── stream.py               # Résolution des streams
-├── config/                     # Configuration
-│   └── settings.py             # Paramètres application
-├── scrapers/                   # Extracteurs de contenu
-│   ├── base.py                 # Classe de base pour scrapers
-│   └── animesama/              # Module Anime-Sama
-│       ├── catalog.py          # Gestion du catalogue
-│       ├── client.py           # Client HTTP spécialisé
-│       ├── details.py          # Extraction des détails d'anime
-│       ├── helpers.py          # Fonctions utilitaires
-│       ├── parser.py           # Parser HTML
-│       ├── planning.py         # Gestion du planning
-│       ├── player.py           # Interface lecteurs vidéo
-│       ├── player_extractor.py # Extraction des lecteurs
-│       └── video_resolver.py   # Résolution URLs vidéo
-├── services/                   # Services métier
-│   └── anime.py                # Service anime principal
-├── integrations/               # Intégrations externes
-│   └── tmdb/                   # The Movie Database
-│       ├── client.py           # Client TMDB
-│       ├── episode_mapper.py   # Mapping épisodes
-│       └── service.py          # Service TMDB
-├── utils/                      # Utilitaires
-│   ├── dependencies.py         # Dépendances FastAPI
-│   ├── logger.py               # Système de logs
-│   ├── parsers.py              # Parseurs génériques
-│   ├── stremio_formatter.py    # Format Stremio
-│   ├── data/                   # Gestion des données
-│   │   ├── database.py         # Base de données et cache
-│   │   └── loader.py           # Chargement dataset
-│   ├── errors/                 # Gestion d'erreurs
-│   │   ├── handler.py          # Gestionnaire d'erreurs
-│   │   └── patterns.py         # Patterns d'erreurs
-│   ├── http/                   # Client HTTP
-│   │   ├── client.py           # Client HTTP avec retry
-│   │   ├── rate_limiter.py     # Limitation de débit
-│   │   └── url_filters.py      # Filtres URL
-│   └── validation/             # Validation
-│       ├── helpers.py          # Helpers validation
-│       └── models.py           # Modèles de validation
-├── templates/                  # Templates HTML
-│   └── index.html              # Page de configuration
-└── assets/                     # Ressources statiques
-    └── astream-logo.jpg        # Logo principal
-```
+## 🛠️ Problème
 
 ### 🧪 Tests et Debug
 
@@ -347,4 +278,6 @@ Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de 
 <p align="center">
   Fait avec ❤️ pour la communauté anime française
 </p>
+
+
 
