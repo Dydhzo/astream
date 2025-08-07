@@ -10,14 +10,14 @@ show_usage() {
     echo "Usage: $0 <slug> <season> <episode> <language> <url>"
     echo ""
     echo "Exemples:"
-    echo "  $0 one-piece 1 1 VOSTFR \"https://sibnet.ru/shell.php?videoid=123456\""
-    echo "  $0 naruto 4 21 VF \"https://vidmoly.to/embed-abc123.html\""
-    echo "  $0 bleach 998 1 VOSTFR \"https://sendvid.com/embed/film1\""
+    echo "  $0 one-piece 1 1 VOSTFR \"https://domaine1.com/embed/test-1\""
+    echo "  $0 naruto 4 21 VF \"https://domaine2.com/embed/test-2\""
+    echo "  $0 bleach 990 1 VOSTFR \"https://domaine3.com/embed/test-3\""
     echo ""
     echo "Saisons speciales:"
     echo "  0   = OAV/Speciaux"
-    echo "  998 = Films"
-    echo "  999 = Hors-serie"
+    echo "  990 = Films"
+    echo "  991 = Hors-serie"
 }
 
 # Vérifier le nombre de paramètres
@@ -105,23 +105,32 @@ if not anime:
     anime = {'slug': slug, 'streams': []}
     data['anime'].append(anime)
 
-# Vérifier si cette URL exacte existe déjà
+# Chercher stream existant pour cet épisode/langue
+existing_stream = None
 for stream in anime['streams']:
     if (stream['season'] == season and stream['episode'] == episode and 
-        stream['language'] == language and stream['url'] == url):
+        stream['language'] == language):
+        existing_stream = stream
+        break
+
+if existing_stream:
+    # Stream existe, ajouter URL si pas déjà présente
+    if url in existing_stream['urls']:
         print('Cette URL est déjà présente pour cet épisode!')
         sys.exit(1)
+    
+    existing_stream['urls'].append(url)
+else:
+    # Nouveau stream
+    new_stream = {
+        'season': season,
+        'episode': episode,
+        'language': language,
+        'urls': [url]
+    }
+    anime['streams'].append(new_stream)
 
-# Ajouter nouveau stream
-new_stream = {
-    'season': season,
-    'episode': episode, 
-    'language': language,
-    'url': url
-}
-anime['streams'].append(new_stream)
-
-# Trier: VOSTFR, VF, VF1, VF2
+# Trier streams
 ordre = {'VOSTFR': 0, 'VF': 1, 'VF1': 2, 'VF2': 3}
 anime['streams'].sort(key=lambda x: (x['season'], x['episode'], ordre.get(x['language'], 99)))
 

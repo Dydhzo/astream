@@ -1,9 +1,9 @@
 import re
 from typing import List, Set
 from astream.utils.logger import logger
-from astream.utils.base_scraper import BaseScraper
-from astream.utils.database import get_metadata_from_cache, set_metadata_to_cache
-from astream.config.app_settings import settings
+from astream.scrapers.base import BaseScraper
+from astream.utils.data.database import get_metadata_from_cache, set_metadata_to_cache
+from astream.config.settings import settings
 
 
 class AnimeSamaPlanning(BaseScraper):
@@ -15,7 +15,7 @@ class AnimeSamaPlanning(BaseScraper):
     
     async def get_current_planning_anime(self) -> Set[str]:
         """Récupère les anime actuellement dans le planning."""
-        cached_planning = await get_metadata_from_cache("as:anime_planning")
+        cached_planning = await get_metadata_from_cache("as:planning")
         if cached_planning:
             logger.log("PERFORMANCE", f"Planning récupéré depuis le cache")
             return set(cached_planning.get("anime_slugs", []))
@@ -24,23 +24,23 @@ class AnimeSamaPlanning(BaseScraper):
         try:
             response = await self._rate_limited_request('get', self.planning_url)
             if not response:
-                logger.log("WARNING", "ANIMESAMA: Impossible de récupérer le planning")
+                logger.warning("ANIMESAMA: Impossible de récupérer le planning")
                 return set()
             
             anime_slugs = self._extract_anime_slugs_from_planning(response.text)
             
             planning_data = {"anime_slugs": list(anime_slugs)}
             await set_metadata_to_cache(
-                "as:anime_planning", 
+                "as:planning", 
                 planning_data, 
-                settings.PLANNING_CACHE_TTL
+                settings.PLANNING_TTL
             )
             
             logger.log("ANIMESAMA", f"Planning mis à jour: {len(anime_slugs)} anime actifs")
             return anime_slugs
             
         except Exception as e:
-            logger.log("ERROR", f"ANIMESAMA: Erreur scraping planning: {e}")
+            logger.error(f"ANIMESAMA: Erreur scraping planning: {e}")
             return set()
     
     def _extract_anime_slugs_from_planning(self, html_content: str) -> Set[str]:
@@ -56,10 +56,10 @@ class AnimeSamaPlanning(BaseScraper):
                 if slug:
                     anime_slugs.add(slug)
             
-            logger.log("DEBUG", f"Slugs planning extraits: {sorted(anime_slugs)}")
+            logger.debug(f"Slugs planning extraits: {sorted(anime_slugs)}")
             
         except Exception as e:
-            logger.log("ERROR", f"ANIMESAMA: Erreur extraction slugs planning: {e}")
+            logger.error(f"ANIMESAMA: Erreur extraction slugs planning: {e}")
         
         return anime_slugs
     
@@ -74,7 +74,7 @@ class AnimeSamaPlanning(BaseScraper):
         )
         
         status = "EN COURS" if is_ongoing else "TERMINÉ"
-        logger.log("DEBUG", f"Anime '{anime_slug}': {status}")
+        logger.debug(f"Anime '{anime_slug}': {status}")
         
         return is_ongoing
 
@@ -110,5 +110,5 @@ async def get_smart_cache_ttl(anime_slug: str) -> int:
         return ttl
         
     except Exception as e:
-        logger.log("WARNING", f"PERFORMANCE: Erreur calcul TTL '{anime_slug}': {e}")
+        logger.warning(f"PERFORMANCE: Erreur calcul TTL '{anime_slug}': {e}")
         return settings.ONGOING_ANIME_TTL

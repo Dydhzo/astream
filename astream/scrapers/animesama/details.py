@@ -1,12 +1,12 @@
 from typing import List, Optional, Dict, Any
 from bs4 import BeautifulSoup
 
-from astream.utils.http_client import HttpClient
+from astream.utils.http.client import HttpClient
 from astream.utils.logger import logger
-from astream.utils.base_scraper import BaseScraper
-from astream.utils.database import get_metadata_from_cache, set_metadata_to_cache, DistributedLock, LockAcquisitionError
-from astream.config.app_settings import settings
-from astream.scrapers.animesama_parser import (
+from astream.scrapers.base import BaseScraper
+from astream.utils.data.database import get_metadata_from_cache, set_metadata_to_cache, DistributedLock, LockAcquisitionError
+from astream.config.settings import settings
+from astream.scrapers.animesama.parser import (
     parse_anime_details_from_html,
     parse_languages_from_html,
     parse_seasons_from_html,
@@ -23,7 +23,7 @@ class AnimeSamaDetails(BaseScraper):
     async def get_anime_details(self, anime_slug: str) -> Optional[Dict[str, Any]]:
         """Récupère les détails d'un anime par slug."""
         try:
-            logger.log("DEBUG", f"ANIMESAMA: Récupération détails pour {anime_slug}")
+            logger.debug(f"ANIMESAMA: Récupération détails pour {anime_slug}")
             response = await self._rate_limited_request('get', f"{self.base_url}/catalogue/{anime_slug}/")
             response.raise_for_status()
             
@@ -36,13 +36,13 @@ class AnimeSamaDetails(BaseScraper):
             return anime_data
             
         except Exception as e:
-            logger.log("ERROR", f"ANIMESAMA: Échec détails pour {anime_slug}: {e}")
+            logger.error(f"ANIMESAMA: Échec détails pour {anime_slug}: {e}")
             return None
 
     async def get_seasons(self, anime_slug: str) -> List[Dict[str, Any]]:
         """Récupère les saisons disponibles."""
         try:
-            logger.log("DEBUG", f"ANIMESAMA: Récupération saisons pour {anime_slug}")
+            logger.debug(f"ANIMESAMA: Récupération saisons pour {anime_slug}")
             response = await self._rate_limited_request('get', f"{self.base_url}/catalogue/{anime_slug}/")
             response.raise_for_status()
             
@@ -50,7 +50,7 @@ class AnimeSamaDetails(BaseScraper):
             return seasons
             
         except Exception as e:
-            logger.log("ERROR", f"ANIMESAMA: Échec saisons pour {anime_slug}: {e}")
+            logger.error(f"ANIMESAMA: Échec saisons pour {anime_slug}: {e}")
             return []
 
     async def get_film_title(self, anime_slug: str, episode_num: int) -> Optional[str]:
@@ -64,18 +64,18 @@ class AnimeSamaDetails(BaseScraper):
             
             film_titles = parse_film_titles_from_html(html)
             
-            logger.log("DEBUG", f"Titres films trouvés: {film_titles}")
+            logger.debug(f"Titres films trouvés: {film_titles}")
             
             if episode_num <= len(film_titles):
                 film_title = film_titles[episode_num - 1].strip()
-                logger.log("DEBUG", f"Titre film sélectionné: '{film_title}'")
+                logger.debug(f"Titre film sélectionné: '{film_title}'")
                 return film_title
             else:
-                logger.log("WARNING", f"Épisode #{episode_num} > nombre films ({len(film_titles)})")
+                logger.warning(f"Épisode #{episode_num} > nombre films ({len(film_titles)})")
                 return None
                 
         except Exception as e:
-            logger.log("ERROR", f"ANIMESAMA: Erreur titre film {anime_slug} #{episode_num}: {e}")
+            logger.error(f"ANIMESAMA: Erreur titre film {anime_slug} #{episode_num}: {e}")
             return None
 
     async def fetch_complete_anime_data(self, anime_slug: str) -> Optional[Dict[str, Any]]:
@@ -114,11 +114,11 @@ async def get_or_fetch_anime_details(animesama_details: AnimeSamaDetails, anime_
             return anime_data
             
     except LockAcquisitionError:
-        logger.log("WARNING", f"DATABASE: Verrou impossible {anime_slug}, tentative sans verrou")
+        logger.warning(f"DATABASE: Verrou impossible {anime_slug}, tentative sans verrou")
         anime_data = await animesama_details.fetch_complete_anime_data(anime_slug)
         if anime_data:
             await set_metadata_to_cache(cache_id, anime_data)
         return anime_data
     except Exception as e:
-        logger.log("ERROR", f"ANIMESAMA: Erreur inattendue détails {anime_slug}: {e}")
+        logger.error(f"ANIMESAMA: Erreur inattendue détails {anime_slug}: {e}")
         return None

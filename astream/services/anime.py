@@ -3,12 +3,14 @@ import asyncio
 
 from astream.utils.logger import logger
 from astream.utils.dependencies import get_animesama_api, get_animesama_player, get_global_http_client
-from astream.scrapers.animesama_details import get_or_fetch_anime_details
-from astream.scrapers.animesama_video_resolver import AnimeSamaVideoResolver
-from astream.utils.dataset_loader import get_dataset_loader
-from astream.utils.database import get_metadata_from_cache, set_metadata_to_cache
-from astream.config.app_settings import settings
-from astream.utils.stream_formatter import format_stream_for_stremio
+from astream.utils.parsers import MediaIdParser
+from astream.scrapers.animesama.details import get_or_fetch_anime_details
+from astream.scrapers.animesama.video_resolver import AnimeSamaVideoResolver
+from astream.utils.data.loader import get_dataset_loader
+from astream.utils.data.database import get_metadata_from_cache, set_metadata_to_cache
+from astream.config.settings import settings
+from astream.utils.stremio_formatter import format_stream_for_stremio
+from astream.scrapers.animesama.helpers import parse_genres_string
 
 
 class AnimeSamaService:
@@ -34,14 +36,14 @@ class AnimeSamaService:
                 return await animesama_api.get_homepage_content()
                 
         except Exception as e:
-            logger.log("ERROR", f"ANIMESAMA: Erreur récupération catalogue: {e}")
+            logger.error(f"ANIMESAMA: Erreur récupération catalogue: {e}")
             return []
 
     async def get_anime_metadata(self, anime_id: str, client_ip: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """Récupère métadonnées complètes d'un anime."""
         try:
             if not anime_id.startswith('as:'):
-                logger.log("ERROR", f"ID anime invalide: {anime_id}")
+                logger.error(f"ID anime invalide: {anime_id}")
                 return None
             
             anime_slug = anime_id.replace('as:', '')
@@ -54,20 +56,21 @@ class AnimeSamaService:
             anime_data = await get_or_fetch_anime_details(animesama_api.details, anime_slug)
             
             if not anime_data:
-                logger.log("WARNING", f"ANIMESAMA: Aucune donnée trouvée pour {anime_slug}")
+                logger.warning(f"ANIMESAMA: Aucune donnée trouvée pour {anime_slug}")
                 return None
             
             return await self._enrich_metadata_with_episode_counts(anime_data, client_ip)
             
         except Exception as e:
-            logger.log("ERROR", f"ANIMESAMA: Erreur récupération métadonnées {anime_id}: {e}")
+            logger.error(f"ANIMESAMA: Erreur récupération métadonnées {anime_id}: {e}")
             return None
 
-    async def get_episode_streams(self, episode_id: str, language_filter: Optional[str] = None, language_order: Optional[str] = None, client_ip: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def get_episode_streams(self, episode_id: str, language_filter: Optional[str] = None, language_order: Optional[str] = None, client_ip: Optional[str] = None, config: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """Récupère streams pour un épisode avec fusion dataset + scraping."""
         try:
-            parsed_id = self._parse_media_id(episode_id)
-            if not parsed_id:
+            parsed_id = MediaIdParser.parse_episode_id(episode_id)
+            if not parsed_id or parsed_id['is_metadata_only']:
+                logger.error(f"Episode_id invalide ou métadonnées seulement: {episode_id}")
                 return []
             
             anime_slug = parsed_id['anime_slug']
@@ -77,7 +80,7 @@ class AnimeSamaService:
             logger.log("STREAM", f"Récupération streams {anime_slug} S{season_number}E{episode_number}")
             
             # 1. Vérifier cache des URLs de player fusionnées d'abord
-            cache_key = f"as:{anime_slug}:s{season_number}e{episode_number}:players"
+            cache_key = f"as:{anime_slug}:s{season_number}e{episode_number}"
             cached_players = await get_metadata_from_cache(cache_key)
             
             if cached_players:
@@ -90,11 +93,11 @@ class AnimeSamaService:
                     http_client = await self._get_http_client()
                     resolver = AnimeSamaVideoResolver(http_client)
                     
-                    logger.log("DATABASE", f"Visite de {len(player_urls_with_language)} URLs depuis cache pour extraire vidéos")
+                    logger.log("DATABASE", f"Extraction vidéos depuis {len(player_urls_with_language)} URLs en cache")
                     
                     # Extraire les vraies URLs vidéo depuis les players en cache
                     video_urls_with_language = await resolver.extract_video_urls_from_players_with_language(
-                        player_urls_with_language
+                        player_urls_with_language, config
                     )
                     
                     # Formater les streams au format attendu par Stremio
@@ -118,18 +121,18 @@ class AnimeSamaService:
                 
                 # 2. Lancer dataset + scraping EN PARALLÈLE (URLs de player seulement)
                 dataset_task = asyncio.create_task(self._get_dataset_player_urls(anime_slug, season_number, episode_number, language_filter))
-                scraping_task = asyncio.create_task(self._get_scraping_player_urls(anime_slug, season_number, episode_number, language_filter, client_ip))
+                scraping_task = asyncio.create_task(self._get_scraping_player_urls(anime_slug, season_number, episode_number, language_filter, client_ip, config))
                 
                 # 3. Attendre les 2 résultats
                 dataset_players, scraping_players = await asyncio.gather(dataset_task, scraping_task, return_exceptions=True)
                 
                 # 4. Gérer les exceptions
                 if isinstance(dataset_players, Exception):
-                    logger.log("WARNING", f"DATASET: Erreur récupération players: {dataset_players}")
+                    logger.warning(f"DATASET: Erreur récupération players: {dataset_players}")
                     dataset_players = []
                 
                 if isinstance(scraping_players, Exception):
-                    logger.log("WARNING", f"ANIMESAMA: Erreur récupération players: {scraping_players}")
+                    logger.warning(f"ANIMESAMA: Erreur récupération players: {scraping_players}")
                     scraping_players = []
                 
                 # 5. Fusionner les URLs de player
@@ -153,7 +156,7 @@ class AnimeSamaService:
                     "language_filter": language_filter,
                     "total_players": len(unique_players)
                 }
-                await set_metadata_to_cache(cache_key, cache_data, ttl=settings.EPISODE_PLAYERS_TTL)
+                await set_metadata_to_cache(cache_key, cache_data, ttl=settings.EPISODE_TTL)
                 logger.log("DATABASE", f"Cache set {cache_key} - {len(unique_players)} players fusionnés (dataset + scraping)")
                 
                 # 8. Extraire URLs vidéo depuis les players fusionnés
@@ -161,10 +164,10 @@ class AnimeSamaService:
                     http_client = await self._get_http_client()
                     resolver = AnimeSamaVideoResolver(http_client)
                     
-                    logger.log("STREAM", f"Visite de {len(unique_players)} URLs fusionnées pour extraire vidéos")
+                    logger.log("STREAM", f"Extraction vidéos depuis {len(unique_players)} URLs fusionnées")
                     
                     video_urls_with_language = await resolver.extract_video_urls_from_players_with_language(
-                        unique_players
+                        unique_players, config
                     )
                     
                     # Formater les streams au format attendu par Stremio
@@ -186,7 +189,7 @@ class AnimeSamaService:
             return self._filter_streams_by_language(unique_streams, language_filter, language_order)
             
         except Exception as e:
-            logger.log("ERROR", f"STREAM: Erreur récupération streams {episode_id}: {e}")
+            logger.error(f"STREAM: Erreur récupération streams {episode_id}: {e}")
             return []
 
     async def get_film_title(self, anime_slug: str, episode_num: int, client_ip: Optional[str] = None) -> Optional[str]:
@@ -199,7 +202,7 @@ class AnimeSamaService:
             return await animesama_api.get_film_title(anime_slug, episode_num)
             
         except Exception as e:
-            logger.log("ERROR", f"ANIMESAMA: Erreur récupération titre film {anime_slug}#{episode_num}: {e}")
+            logger.error(f"ANIMESAMA: Erreur récupération titre film {anime_slug}#{episode_num}: {e}")
             return None
 
     def extract_available_genres(self, catalog_data: List[Dict[str, Any]]) -> List[str]:
@@ -210,7 +213,7 @@ class AnimeSamaService:
             for anime in catalog_data:
                 anime_genres = anime.get('genres', '')
                 if isinstance(anime_genres, str) and anime_genres:
-                    genre_list = [g.strip() for g in anime_genres.split(',') if g.strip()]
+                    genre_list = parse_genres_string(anime_genres)
                     genres.update(genre_list)
                 elif isinstance(anime_genres, list):
                     genres.update(anime_genres)
@@ -219,33 +222,12 @@ class AnimeSamaService:
             return sorted(cleaned_genres)
             
         except Exception as e:
-            logger.log("WARNING", f"Erreur extraction genres: {e}")
+            logger.warning(f"Erreur extraction genres: {e}")
             return []
 
-    def _parse_media_id(self, episode_id: str) -> Optional[Dict[str, Any]]:
-        """Parse episode_id format as:anime_slug:s1e2."""
-        try:
-            import re
-            
-            pattern = r'^as:([^:]+):s(\d+)e(\d+)$'
-            match = re.match(pattern, episode_id)
-            
-            if not match:
-                logger.log("ERROR", f"Format episode_id invalide: {episode_id}")
-                return None
-            
-            return {
-                'anime_slug': match.group(1),
-                'season_number': int(match.group(2)),
-                'episode_number': int(match.group(3))
-            }
-            
-        except Exception as e:
-            logger.log("ERROR", f"Erreur parsing episode_id {episode_id}: {e}")
-            return None
 
     async def _enrich_metadata_with_episode_counts(self, anime_data: Dict[str, Any], client_ip: Optional[str] = None) -> Dict[str, Any]:
-        """Enrichit métadonnées avec comptage épisodes parallele."""
+        """Enrichit métadonnées avec comptage parallèle des épisodes par saison."""
         try:
             seasons = anime_data.get('seasons', [])
             if not seasons:
@@ -267,7 +249,7 @@ class AnimeSamaService:
                     season_data['total_episodes'] = max(episode_counts.values()) if episode_counts else 0
                     return season_data
                 except Exception as e:
-                    logger.log("WARNING", f"ANIMESAMA: Erreur comptage épisodes saison {season_data.get('season_number')}: {e}")
+                    logger.warning(f"ANIMESAMA: Erreur comptage épisodes saison {season_data.get('season_number')}: {e}")
                     season_data = season_data.copy()
                     season_data['episode_counts'] = {}
                     season_data['total_episodes'] = 0
@@ -278,11 +260,11 @@ class AnimeSamaService:
             enriched_anime_data = anime_data.copy()
             enriched_anime_data['seasons'] = enriched_seasons
             
-            logger.log("DEBUG", f"ANIMESAMA: Métadonnées enrichies {anime_slug}: {len(enriched_seasons)} saisons")
+            logger.debug(f"ANIMESAMA: Métadonnées enrichies {anime_slug}: {len(enriched_seasons)} saisons")
             return enriched_anime_data
             
         except Exception as e:
-            logger.log("WARNING", f"ANIMESAMA: Erreur enrichissement métadonnées: {e}")
+            logger.warning(f"ANIMESAMA: Erreur enrichissement métadonnées: {e}")
             return anime_data
     
     async def _get_dataset_player_urls(self, anime_slug: str, season: int, episode: int, language_filter: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -292,7 +274,7 @@ class AnimeSamaService:
             
             dataset_loader = get_dataset_loader()
             if not dataset_loader:
-                logger.log("DEBUG", f"DATASET: Loader non disponible")
+                logger.debug(f"DATASET: Loader non disponible")
                 return []
             
             streams = await dataset_loader.get_streams(anime_slug, season, episode, language_filter)
@@ -312,10 +294,10 @@ class AnimeSamaService:
             return player_urls_with_language
             
         except Exception as e:
-            logger.log("ERROR", f"DATASET: Erreur récupération URLs player: {e}")
+            logger.error(f"DATASET: Erreur récupération URLs player: {e}")
             return []
     
-    async def _get_scraping_player_urls(self, anime_slug: str, season: int, episode: int, language_filter: Optional[str] = None, client_ip: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def _get_scraping_player_urls(self, anime_slug: str, season: int, episode: int, language_filter: Optional[str] = None, client_ip: Optional[str] = None, config: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """Récupère URLs de player par scraping AnimeSama."""
         try:
             # Récupérer les détails de l'anime pour obtenir les données de saison
@@ -325,7 +307,7 @@ class AnimeSamaService:
                 
             anime_data = await get_or_fetch_anime_details(animesama_api.details, anime_slug)
             if not anime_data:
-                logger.log("WARNING", f"ANIMESAMA: Aucune donnée trouvée pour {anime_slug}")
+                logger.warning(f"ANIMESAMA: Aucune donnée trouvée pour {anime_slug}")
                 return []
             
             # Trouver la saison correspondante
@@ -338,7 +320,7 @@ class AnimeSamaService:
                     break
             
             if not target_season:
-                logger.log("WARNING", f"ANIMESAMA: Saison {season} introuvable pour {anime_slug}")
+                logger.warning(f"ANIMESAMA: Saison {season} introuvable pour {anime_slug}")
                 return []
             
             # Utiliser AnimeSamaPlayerExtractor pour extraire juste les URLs de player
@@ -350,7 +332,8 @@ class AnimeSamaService:
                 anime_slug=anime_slug,
                 season_data=target_season,
                 episode_number=episode,
-                language_filter=language_filter
+                language_filter=language_filter,
+                config=config
             )
             
             if player_urls:
@@ -359,7 +342,7 @@ class AnimeSamaService:
             return player_urls
             
         except Exception as e:
-            logger.log("ERROR", f"ANIMESAMA: Erreur scraping URLs player: {e}")
+            logger.error(f"ANIMESAMA: Erreur scraping URLs player: {e}")
             return []
     
     def _filter_streams_by_language(self, streams: List[Dict[str, Any]], language_filter: Optional[str] = None, language_order: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -403,16 +386,14 @@ class AnimeSamaService:
             # Trier par priorité (index le plus bas = priorité la plus haute)
             sorted_streams = sorted(streams, key=get_language_priority)
             
-            # Log détaillé du tri
+            # Log détaillé du tri en mode debug uniquement
             languages_found = [stream.get("language", "UNKNOWN") for stream in sorted_streams]
-            logger.log("DEBUG", f"Streams triés selon ordre: {language_order}")
-            logger.log("DEBUG", f"Langues dans l'ordre final: {languages_found}")
-            logger.log("DEBUG", f"Total streams triés: {len(sorted_streams)}")
+            logger.debug(f"Streams triés: {language_order} -> {languages_found[:3]}{'...' if len(languages_found) > 3 else ''}")
             
             return sorted_streams
             
         except Exception as e:
-            logger.log("WARNING", f"Erreur tri langues '{language_order}': {e}")
+            logger.warning(f"Erreur tri langues '{language_order}': {e}")
             return streams
     
     async def _get_http_client(self):

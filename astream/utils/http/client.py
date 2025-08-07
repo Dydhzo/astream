@@ -3,7 +3,7 @@ import asyncio
 import random
 from urllib.parse import urlparse
 
-from astream.config.app_settings import settings
+from astream.config.settings import settings
 from astream.utils.logger import logger
 
 
@@ -16,11 +16,11 @@ USER_AGENT_POOL = [
 ]
 
 def get_random_user_agent():
-    """Retourne un User-Agent aléatoire depuis le pool."""
+    """Sélectionne aléatoirement un User-Agent."""
     return random.choice(USER_AGENT_POOL)
 
 def get_default_headers():
-    """Génère des headers de base avec User-Agent aléatoire."""
+    """Génère les en-têtes HTTP par défaut."""
     return {
         "User-Agent": get_random_user_agent(),
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
@@ -31,7 +31,7 @@ def get_default_headers():
     }
 
 def get_sibnet_headers(referer_url):
-    """Génère des headers spéciaux pour Sibnet avec User-Agent aléatoire."""
+    """Génère les en-têtes spécifiques pour Sibnet."""
     return {
         "User-Agent": get_random_user_agent(),
         "Referer": referer_url,
@@ -45,13 +45,13 @@ def get_sibnet_headers(referer_url):
 
 
 def should_bypass_proxy(url: str) -> bool:
-    """Vérifie si une URL doit bypasser le proxy selon PROXY_BYPASS_DOMAINS."""
+    """Détermine si une URL doit contourner le proxy."""
     if not settings.PROXY_URL or not settings.PROXY_BYPASS_DOMAINS:
-        return False
+        return False  # Pas de proxy ou pas de domaines à contourner
     
     try:
-        domain = urlparse(url).netloc.lower()
-        bypass_domains = [d.strip().lower() for d in settings.PROXY_BYPASS_DOMAINS.split(',') if d.strip()]
+        domain = urlparse(url).netloc.lower()  # Extraire le domaine de l'URL
+        bypass_domains = [d.strip().lower() for d in settings.PROXY_BYPASS_DOMAINS.split(',') if d.strip()]  # Nettoyer les domaines
         
         for bypass_domain in bypass_domains:
             if bypass_domain in domain:
@@ -60,7 +60,7 @@ def should_bypass_proxy(url: str) -> bool:
         
         return False
     except Exception as e:
-        logger.log("WARNING", f"Erreur vérification bypass proxy: {e}")
+        logger.warning(f"Erreur vérification bypass proxy: {e}")
         return False
 
 
@@ -99,7 +99,6 @@ class BaseClient:
 
 
 class HttpClient(BaseClient):
-    """Client HTTP unifié avec tentatives automatiques et bypass proxy."""
     
     def __init__(self, base_url: str = "", timeout: float = None, retries: int = 3):
         if timeout is None:
@@ -113,7 +112,6 @@ class HttpClient(BaseClient):
         self._setup_clients()
     
     def _setup_clients(self):
-        """Configure les clients HTTP avec et sans proxy."""
         headers = get_default_headers()
         base_config = {
             "timeout": httpx.Timeout(self.timeout),
@@ -129,7 +127,7 @@ class HttpClient(BaseClient):
             proxy_config = base_config.copy()
             proxy_config["proxy"] = settings.PROXY_URL
             self.proxy_client = httpx.AsyncClient(**proxy_config)
-            logger.log("INFO", f"Configuration du proxy: {settings.PROXY_URL}")
+            logger.info(f"Configuration du proxy: {settings.PROXY_URL}")
         else:
             self.proxy_client = self.direct_client
         
@@ -189,28 +187,28 @@ class HttpClient(BaseClient):
                 
             except httpx.TimeoutException as e:
                 last_exception = e
-                logger.log("WARNING", f"{method} {url} timeout (tentative {attempt + 1}/{self.retries})")
+                logger.warning(f"{method} {url} timeout (tentative {attempt + 1}/{self.retries})")
                 if attempt < self.retries - 1:
                     await asyncio.sleep(1 * (attempt + 1))
                     
             except httpx.HTTPStatusError as e:
                 last_exception = e
                 if e.response.status_code >= 500:
-                    logger.log("WARNING", f"{method} {url} → {e.response.status_code} (tentative {attempt + 1}/{self.retries})")
+                    logger.warning(f"{method} {url} → {e.response.status_code} (tentative {attempt + 1}/{self.retries})")
                     if attempt < self.retries - 1:
                         await asyncio.sleep(1 * (attempt + 1))
                         continue
                 else:
-                    logger.log("ERROR", f"{method} {url} → {e.response.status_code}")
+                    logger.error(f"{method} {url} → {e.response.status_code}")
                     raise
                     
             except Exception as e:
                 last_exception = e
-                logger.log("ERROR", f"{method} {url} erreur: {str(e)} (tentative {attempt + 1}/{self.retries})")
+                logger.error(f"{method} {url} erreur: {str(e)} (tentative {attempt + 1}/{self.retries})")
                 if attempt < self.retries - 1:
                     await asyncio.sleep(1 * (attempt + 1))
         
-        logger.log("ERROR", f"{method} {url} a échoué après {self.retries} tentatives")
+        logger.error(f"{method} {url} a échoué après {self.retries} tentatives")
         if last_exception:
             raise last_exception
         else:

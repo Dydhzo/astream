@@ -4,10 +4,10 @@ from typing import List, Optional, Dict, Any
 from urllib.parse import urljoin, urlparse
 
 from astream.utils.logger import logger
-from astream.utils.base_scraper import BaseScraper
-from astream.utils.database import get_metadata_from_cache, set_metadata_to_cache
-from astream.config.app_settings import settings
-from astream.utils.animesama_utils import extract_video_urls_from_text
+from astream.scrapers.base import BaseScraper
+from astream.utils.data.database import get_metadata_from_cache, set_metadata_to_cache
+from astream.config.settings import settings
+from astream.scrapers.animesama.helpers import extract_video_urls_from_text
 
 
 class AnimeSamaVideoResolver(BaseScraper):
@@ -16,7 +16,7 @@ class AnimeSamaVideoResolver(BaseScraper):
     def __init__(self, client):
         super().__init__(client, settings.ANIMESAMA_URL)
 
-    async def extract_video_urls_from_players_with_language(self, player_urls_with_language: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    async def extract_video_urls_from_players_with_language(self, player_urls_with_language: List[Dict[str, Any]], config: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """Visite chaque player et extrait les URLs vidéo."""
         logger.log("STREAM", f"Visite {len(player_urls_with_language)} players pour extraire URLs vidéo")
         
@@ -32,7 +32,7 @@ class AnimeSamaVideoResolver(BaseScraper):
                     if sibnet_url:
                         return [{"url": sibnet_url, "language": language}]
                     else:
-                        logger.log("WARNING", f"Impossible extraire URL Sibnet depuis {player_url}")
+                        logger.warning(f"Impossible extraire URL Sibnet depuis {player_url}")
                         return []
                 
                 response = await self.client.get(player_url)
@@ -48,7 +48,7 @@ class AnimeSamaVideoResolver(BaseScraper):
                 return results
                 
             except Exception as e:
-                logger.log("WARNING", f"Échec visite {player_data['url']}: {e}")
+                logger.warning(f"Échec visite {player_data['url']}: {e}")
                 return []
         
         extraction_tasks = [extract_from_single_player_with_language(player_data) for player_data in player_urls_with_language]
@@ -66,7 +66,7 @@ class AnimeSamaVideoResolver(BaseScraper):
                 seen_urls.add(item["url"])
                 unique_urls_with_language.append(item)
         
-        filtered_urls_list = self._filter_excluded_domains([item["url"] for item in unique_urls_with_language])
+        filtered_urls_list = self._filter_excluded_domains([item["url"] for item in unique_urls_with_language], config)
         final_urls_with_language = []
         
         for item in unique_urls_with_language:
@@ -74,14 +74,14 @@ class AnimeSamaVideoResolver(BaseScraper):
                 final_urls_with_language.append(item)
         
         
-        logger.log("INFO", f"SUCCESS: Extrait {len(final_urls_with_language)} URLs vidéo uniques")
+        logger.info(f"SUCCESS: Extrait {len(final_urls_with_language)} URLs vidéo uniques")
         return final_urls_with_language
 
     def _extract_video_urls_from_html(self, html: str, player_url: str) -> List[str]:
         """Extrait URLs vidéo depuis HTML d'un player."""
         video_urls = []
         
-        found_urls = extract_video_urls_from_text(html)
+        found_urls = extract_video_urls_from_text(html, player_url)
         
         for match in found_urls:
             try:
@@ -109,7 +109,7 @@ class AnimeSamaVideoResolver(BaseScraper):
             match = re.search(pattern, html)
             
             if not match:
-                logger.log("WARNING", f"Pattern player.src non trouvé dans {player_url}")
+                logger.warning(f"Pattern player.src non trouvé dans {player_url}")
                 return None
             
             redirect_url = match.group(1)
@@ -118,7 +118,7 @@ class AnimeSamaVideoResolver(BaseScraper):
                 redirect_url = f"https://video.sibnet.ru{redirect_url}"
             
             
-            from astream.utils.http_client import get_sibnet_headers
+            from astream.utils.http.client import get_sibnet_headers
             headers = get_sibnet_headers(player_url)
             
             try:
@@ -131,10 +131,10 @@ class AnimeSamaVideoResolver(BaseScraper):
                             real_url = f"https:{real_url}"
                         return real_url
                     else:
-                        logger.log("WARNING", f"Header Location manquant réponse Sibnet")
+                        logger.warning(f"Header Location manquant réponse Sibnet")
                         return None
                 else:
-                    logger.log("WARNING", f"Réponse Sibnet inattendue: {response.status_code}")
+                    logger.warning(f"Réponse Sibnet inattendue: {response.status_code}")
                     return None
             
             except Exception as redirect_error:
@@ -145,14 +145,15 @@ class AnimeSamaVideoResolver(BaseScraper):
                         if real_url.startswith('//'):
                             real_url = f"https:{real_url}"
                         return real_url
-                logger.log("WARNING", f"Erreur suivi redirection Sibnet: {redirect_error}")
+                logger.warning(f"Erreur suivi redirection Sibnet: {redirect_error}")
                 return None
                 
         except Exception as e:
-            logger.log("WARNING", f"Erreur extraction Sibnet: {e}")
+            logger.warning(f"Erreur extraction Sibnet: {e}")
             return None
 
-    def _filter_excluded_domains(self, urls: List[str]) -> List[str]:
-        """Filtre URLs selon domaines exclus."""
-        from astream.utils.domain_filters import filter_excluded_domains
-        return filter_excluded_domains(urls)
+    def _filter_excluded_domains(self, urls: List[str], config: Optional[Dict[str, Any]] = None) -> List[str]:
+        """Filtre URLs selon domaines exclus (serveur + utilisateur)."""
+        from astream.utils.http.url_filters import filter_excluded_domains
+        user_excluded = config.get('userExcludedDomains', '') if config else ''
+        return filter_excluded_domains(urls, user_excluded)

@@ -3,8 +3,8 @@ import json
 import asyncio
 from typing import List, Dict, Any, Optional
 from astream.utils.logger import logger
-from astream.utils.http_client import HttpClient
-from astream.config.app_settings import settings
+from astream.utils.http.client import HttpClient
+from astream.config.settings import settings
 
 
 class DatasetLoader:
@@ -37,13 +37,13 @@ class DatasetLoader:
             self._build_search_cache()
             
             # 4. Démarrer mise à jour en arrière-plan si activée
-            if settings.DATASET_ENABLED and settings.AUTO_UPDATE_DATASET:
+            if settings.DATASET_ENABLED and settings.DATASET_UPDATE_INTERVAL > 0:
                 asyncio.create_task(self._periodic_update())
                 
             logger.log("DATASET", f"Initialisé avec {len(self.dataset.get('anime', []))} anime")
             
         except Exception as e:
-            logger.log("ERROR", f"DATASET: Erreur initialisation: {e}")
+            logger.error(f"DATASET: Erreur initialisation: {e}")
             self.dataset = {"anime": []}
             self._anime_dict = {}
     
@@ -52,17 +52,17 @@ class DatasetLoader:
         try:
             with open(self.dataset_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                logger.log("DEBUG", f"DATASET: Dataset local chargé - {len(data.get('anime', []))} anime")
+                logger.debug(f"DATASET: Dataset local chargé - {len(data.get('anime', []))} anime")
                 return data
         except Exception as e:
-            logger.log("WARNING", f"DATASET: Erreur lecture dataset local: {e}")
+            logger.warning(f"DATASET: Erreur lecture dataset local: {e}")
             return {"anime": []}
     
     async def _download_and_save_dataset(self):
         """Télécharge et sauvegarde le dataset depuis GitHub."""
         try:
             if not settings.DATASET_URL:
-                logger.log("WARNING", "DATASET: DATASET_URL non configurée")
+                logger.warning("DATASET: DATASET_URL non configurée")
                 return
                 
             logger.log("DATASET", f"Téléchargement depuis: {settings.DATASET_URL}")
@@ -82,7 +82,7 @@ class DatasetLoader:
             logger.log("SUCCESS", f"Dataset téléchargé et sauvé - {len(self.dataset.get('anime', []))} anime")
             
         except Exception as e:
-            logger.log("ERROR", f"DATASET: Erreur téléchargement: {e}")
+            logger.error(f"DATASET: Erreur téléchargement: {e}")
             self.dataset = {"anime": []}
     
     def _build_search_cache(self):
@@ -95,22 +95,24 @@ class DatasetLoader:
                 if anime_slug not in self._anime_dict:
                     self._anime_dict[anime_slug] = {"streams": []}
                 
-                # Grouper les streams par saison/épisode/langue
+                # Format avec URLs groupées
                 for stream in anime.get("streams", []):
                     season = stream.get("season")
                     episode = stream.get("episode") 
                     language = stream.get("language")
-                    url = stream.get("url")
-                    
-                    if all([season is not None, episode is not None, language, url]):
-                        self._anime_dict[anime_slug]["streams"].append({
-                            "season": season,
-                            "episode": episode,
-                            "language": language,
-                            "url": url
-                        })
+                    urls = stream.get("urls", [])
+                        
+                    if all([season is not None, episode is not None, language]):
+                        for url in urls:
+                            if url:
+                                self._anime_dict[anime_slug]["streams"].append({
+                                    "season": season,
+                                    "episode": episode,
+                                    "language": language,
+                                    "url": url
+                                })
         
-        logger.log("DEBUG", f"DATASET: Cache construit pour {len(self._anime_dict)} anime")
+        logger.debug(f"DATASET: Cache construit pour {len(self._anime_dict)} anime")
     
     async def get_streams(self, anime_slug: str, season: int, episode: int, language_filter: Optional[str] = None) -> List[Dict[str, Any]]:
         """Récupère les streams depuis le dataset pour un épisode donné."""
@@ -137,47 +139,46 @@ class DatasetLoader:
                     })
             
             if matching_streams:
-                logger.log("DEBUG", f"DATASET: {len(matching_streams)} streams trouvés pour {anime_slug} S{season}E{episode}")
+                logger.debug(f"DATASET: {len(matching_streams)} streams trouvés pour {anime_slug} S{season}E{episode}")
             
             return matching_streams
             
         except Exception as e:
-            logger.log("ERROR", f"DATASET: Erreur récupération streams {anime_slug}: {e}")
+            logger.error(f"DATASET: Erreur récupération streams {anime_slug}: {e}")
             return []
     
     async def _periodic_update(self):
         """Mise à jour périodique du dataset."""
         while True:
             try:
+                # Vérifier que l'intervalle est valide (>0)
+                if settings.DATASET_UPDATE_INTERVAL <= 0:
+                    logger.log("DATASET", "Mise à jour périodique désactivée (intervalle <= 0)")
+                    break
+                    
                 await asyncio.sleep(settings.DATASET_UPDATE_INTERVAL)
                 
                 if not settings.DATASET_URL:
                     continue
                     
-                logger.log("DEBUG", "🔄 DATASET: Vérification mise à jour")
+                logger.debug("🔄 DATASET: Vérification mise à jour")
                 
-                # Télécharger nouvelle version
+                # Télécharger et appliquer nouvelle version
                 response = await self.http_client.get(settings.DATASET_URL)
                 response.raise_for_status()
                 remote_dataset = response.json()
                 
-                # Comparer avec version locale
-                if remote_dataset != self.dataset:
-                    logger.log("DATASET", "Nouvelle version détectée - Mise à jour")
-                    
-                    # Sauvegarder nouvelle version
-                    with open(self.dataset_path, 'w', encoding='utf-8') as f:
-                        json.dump(remote_dataset, f, ensure_ascii=False, indent=2)
-                    
-                    self.dataset = remote_dataset
-                    self._build_search_cache()
-                    
-                    logger.log("SUCCESS", f"Dataset mis à jour - {len(self.dataset.get('anime', []))} anime")
-                else:
-                    logger.log("DEBUG", "DATASET: Aucune mise à jour nécessaire")
+                # Sauvegarder nouvelle version
+                with open(self.dataset_path, 'w', encoding='utf-8') as f:
+                    json.dump(remote_dataset, f, ensure_ascii=False, indent=2)
+                
+                self.dataset = remote_dataset
+                self._build_search_cache()
+                
+                logger.log("SUCCESS", f"Dataset mis à jour - {len(self.dataset.get('anime', []))} anime")
                     
             except Exception as e:
-                logger.log("WARNING", f"DATASET: Erreur mise à jour périodique: {e}")
+                logger.warning(f"DATASET: Erreur mise à jour périodique: {e}")
     
     def reload_dataset(self):
         """Recharge le dataset depuis le fichier local (pour les scripts)."""
@@ -186,7 +187,7 @@ class DatasetLoader:
             self._build_search_cache()
             logger.log("SUCCESS", f"Dataset rechargé - {len(self.dataset.get('anime', []))} anime")
         except Exception as e:
-            logger.log("ERROR", f"DATASET: Erreur rechargement: {e}")
+            logger.error(f"DATASET: Erreur rechargement: {e}")
 
 
 # Instance globale

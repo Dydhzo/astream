@@ -2,7 +2,7 @@ import sys
 import os
 
 from loguru import logger
-from astream.config.app_settings import settings
+from astream.config.settings import settings
 
 
 def setup_logger():
@@ -19,7 +19,8 @@ def setup_logger():
     logger.level("ASTREAM", no=50, icon="🚀", color="<fg #7871d6>")
     logger.level("ANIMESAMA", no=48, icon="🐍", color="<fg #4CAF50>")
     logger.level("API", no=45, icon="📡", color="<fg #2196F3>")
-    logger.level("STREAM", no=42, icon="🎬", color="<fg #FF9800>")
+    logger.level("TMDB", no=43, icon="🎬", color="<fg #01B4E4>")
+    logger.level("STREAM", no=42, icon="📺", color="<fg #FF9800>")
     logger.level("DATABASE", no=40, icon="🔒", color="<fg #9C27B0>")
     logger.level("PROXY", no=37, icon="🌐", color="<fg #00BCD4>")
     logger.level("PERFORMANCE", no=35, icon="⚡", color="<fg #FFEB3B>")

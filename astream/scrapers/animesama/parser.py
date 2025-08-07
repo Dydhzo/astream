@@ -3,7 +3,7 @@ import re
 from bs4 import BeautifulSoup
 
 from astream.utils.logger import logger
-from astream.utils.animesama_utils import (
+from astream.scrapers.animesama.helpers import (
     PANNEAU_ANIME_PATTERN, 
     NEWSPF_PATTERN, 
     SEASON_PATTERNS,
@@ -11,7 +11,9 @@ from astream.utils.animesama_utils import (
     extract_anime_slug_from_url,
     parse_season_info,
     clean_anime_title,
-    extract_genres_from_text
+    extract_genres_from_text,
+    parse_genres_string,
+    is_genres_text
 )
 
 
@@ -43,7 +45,7 @@ def parse_anime_card(card) -> Optional[Dict[str, Any]]:
         content_type = 'anime'
         
         for part in text_parts:
-            if ',' in part and any(genre_word in part for genre_word in ['Action', 'Aventure', 'Comédie', 'Drame', 'Romance']) and not genres:
+            if is_genres_text(part) and not genres:
                 genres = part
             elif any(lang in part for lang in ['VOSTFR', 'VF']) and not languages:
                 languages = part
@@ -63,7 +65,7 @@ def parse_anime_card(card) -> Optional[Dict[str, Any]]:
         return None
         
     except Exception as e:
-        logger.log("WARNING", f"ANIMESAMA: Erreur lors du parsing de la carte anime: {e}")
+        logger.warning(f"ANIMESAMA: Erreur lors du parsing de la carte anime: {e}")
         return None
 
 
@@ -106,7 +108,7 @@ def parse_pepites_card(card) -> Optional[Dict[str, Any]]:
                 continue
                 
             # Structure des pépites : P0=titre alternatifs, P1=genres, P2=type+langues
-            if i == 1 and (',' in text or any(genre in text for genre in ['Action', 'Aventure', 'Comédie', 'Drame', 'Romance'])):
+            if i == 1 and is_genres_text(text):
                 genres = text
             elif i == 2:
                 # Ce paragraphe contient type ET langues
@@ -145,7 +147,7 @@ def parse_pepites_card(card) -> Optional[Dict[str, Any]]:
         return None
         
     except Exception as e:
-        logger.log("WARNING", f"ANIMESAMA: Erreur lors du parsing de la carte Pépites: {e}")
+        logger.warning(f"ANIMESAMA: Erreur lors du parsing de la carte Pépites: {e}")
         return None
 
 
@@ -203,12 +205,12 @@ def parse_anime_details_from_html(soup: BeautifulSoup, anime_slug: str) -> Dict[
             genres_elem = genres_header.find_next_sibling('a')
             if genres_elem:
                 genres_text = genres_elem.get_text(strip=True)
-                anime_data["genres"] = [g.strip() for g in genres_text.split(',') if g.strip()]
+                anime_data["genres"] = parse_genres_string(genres_text)
         
         return anime_data
         
     except Exception as e:
-        logger.log("WARNING", f"ANIMESAMA: Erreur lors du parsing des détails {anime_slug}: {e}")
+        logger.warning(f"ANIMESAMA: Erreur lors du parsing des détails {anime_slug}: {e}")
         return {
             "slug": anime_slug,
             "title": "",
@@ -225,8 +227,11 @@ def parse_languages_from_html(html: str) -> List[str]:
     try:
         languages = set()
         
+        # Supprimer les commentaires JavaScript avant parsing
+        html_clean = re.sub(r'/\*.*?\*/', '', html, flags=re.DOTALL)
+        
         # Détecter les langues depuis les appels panneauAnime()
-        panneau_matches = PANNEAU_ANIME_PATTERN.findall(html)
+        panneau_matches = PANNEAU_ANIME_PATTERN.findall(html_clean)
         for name, url in panneau_matches:
             if '/vostfr' in url:
                 languages.add('VOSTFR')
@@ -240,7 +245,7 @@ def parse_languages_from_html(html: str) -> List[str]:
         return sorted(languages) if languages else ["VOSTFR"]
         
     except Exception as e:
-        logger.log("WARNING", f"ANIMESAMA: Erreur détection langues HTML: {e}")
+        logger.warning(f"ANIMESAMA: Erreur détection langues HTML: {e}")
         return ["VOSTFR"]
 
 
@@ -250,11 +255,14 @@ def parse_seasons_from_html(html: str, anime_slug: str, base_url: str) -> List[D
         seasons = []
         season_mapping = {}
         
+        # Supprimer les commentaires JavaScript multi-lignes /* ... */ avant parsing
+        html_clean = re.sub(r'/\*.*?\*/', '', html, flags=re.DOTALL)
+        
         # Utiliser la même méthode que webstreamr : extraire via regex les appels panneauAnime()
-        season_matches = PANNEAU_ANIME_PATTERN.findall(html)
+        season_matches = PANNEAU_ANIME_PATTERN.findall(html_clean)
         
         if not season_matches:
-            logger.log("WARNING", f"ANIMESAMA: Aucun panneauAnime() pour {anime_slug}")
+            logger.warning(f"ANIMESAMA: Aucun panneauAnime() pour {anime_slug}")
             return []
         
         
@@ -316,7 +324,7 @@ def parse_seasons_from_html(html: str, anime_slug: str, base_url: str) -> List[D
         return seasons
         
     except Exception as e:
-        logger.log("ERROR", f"ANIMESAMA: Échec parsing saisons {anime_slug}: {e}")
+        logger.error(f"ANIMESAMA: Échec parsing saisons {anime_slug}: {e}")
         return []
 
 
@@ -359,8 +367,8 @@ def parse_season_name(name: str, url: str) -> Optional[Dict[str, Any]]:
         # Films
         if 'film' in name.lower() or 'film' in path:
             return {
-                "season_number": 998,
-                "base_season_number": 998,
+                "season_number": 990,
+                "base_season_number": 990,
                 "display_name": "Films",
                 "path": "film",
                 "is_sub_season": False
@@ -382,8 +390,8 @@ def parse_season_name(name: str, url: str) -> Optional[Dict[str, Any]]:
             if hs_match:
                 base_season = int(hs_match.group(1))
                 return {
-                    "season_number": 999,
-                    "base_season_number": 999,
+                    "season_number": 991,
+                    "base_season_number": 991,
                     "display_name": f"Saison {base_season} HS",
                     "path": f"saison{base_season}hs",
                     "is_sub_season": False
@@ -418,11 +426,11 @@ def parse_season_name(name: str, url: str) -> Optional[Dict[str, Any]]:
                         "is_sub_season": False
                     }
         
-        logger.log("WARNING", f"ANIMESAMA: Parser nom saison impossible: '{name}' (URL: '{url}')")
+        logger.warning(f"ANIMESAMA: Parser nom saison impossible: '{name}' (URL: '{url}')")
         return None
         
     except Exception as e:
-        logger.log("WARNING", f"ANIMESAMA: Erreur parsing '{name}': {e}")
+        logger.warning(f"ANIMESAMA: Erreur parsing '{name}': {e}")
         return None
 
 
@@ -453,11 +461,11 @@ def parse_film_titles_from_html(html: str) -> List[str]:
         # Extraire les titres des films depuis les appels newSPF("titre")
         film_titles = NEWSPF_PATTERN.findall(html)
         
-        logger.log("DEBUG", f"Titres films extraits: {film_titles}")
+        logger.debug(f"Titres films extraits: {film_titles}")
         return [title.strip() for title in film_titles]
         
     except Exception as e:
-        logger.log("WARNING", f"ANIMESAMA: Erreur extraction titres films: {e}")
+        logger.warning(f"ANIMESAMA: Erreur extraction titres films: {e}")
         return []
 
 
@@ -511,7 +519,7 @@ def parse_recent_episodes_card(card) -> Optional[Dict[str, Any]]:
         }
         
     except Exception as e:
-        logger.log("WARNING", f"ANIMESAMA: Erreur parsing carte recent episodes: {e}")
+        logger.warning(f"ANIMESAMA: Erreur parsing carte recent episodes: {e}")
         return None
 
 
@@ -583,6 +591,6 @@ def parse_sortie_card(card) -> Optional[Dict[str, Any]]:
         }
         
     except Exception as e:
-        logger.log("WARNING", f"ANIMESAMA: Erreur parsing carte sortie: {e}")
+        logger.warning(f"ANIMESAMA: Erreur parsing carte sortie: {e}")
         return None
 

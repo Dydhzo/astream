@@ -4,10 +4,10 @@ from typing import List, Optional, Dict, Any
 from urllib.parse import urljoin
 
 from astream.utils.logger import logger
-from astream.utils.base_scraper import BaseScraper
-from astream.utils.database import get_metadata_from_cache, set_metadata_to_cache
-from astream.config.app_settings import settings
-from astream.utils.animesama_utils import extract_episodes_from_js
+from astream.scrapers.base import BaseScraper
+from astream.utils.data.database import get_metadata_from_cache, set_metadata_to_cache
+from astream.config.settings import settings
+from astream.scrapers.animesama.helpers import extract_episodes_from_js
 
 
 class AnimeSamaPlayerExtractor(BaseScraper):
@@ -19,7 +19,7 @@ class AnimeSamaPlayerExtractor(BaseScraper):
     async def extract_player_urls_smart_mapping_with_language(self, anime_slug: str, season_data: Dict[str, Any], episode_number: int, language_filter: Optional[str] = None, config: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """Extrait les URLs de players avec mapping intelligent."""
         season_num = season_data.get('season_number')
-        cache_key = f"as:{anime_slug}:s{season_num}e{episode_number}:players"
+        cache_key = f"as:{anime_slug}:s{season_num}e{episode_number}"
         
         cached_players = await get_metadata_from_cache(cache_key)
         if cached_players:
@@ -39,7 +39,7 @@ class AnimeSamaPlayerExtractor(BaseScraper):
         logger.log("DATABASE", f"Cache miss {cache_key} - Extraction players")
         
         try:
-            logger.log("DEBUG", f"Mapping intelligent épisode {episode_number} {anime_slug} S{season_data.get('season_number')}")
+            logger.debug(f"Mapping intelligent épisode {episode_number} {anime_slug} S{season_data.get('season_number')}")
             
             available_languages = season_data.get("languages", ["vostfr"])
             
@@ -56,7 +56,7 @@ class AnimeSamaPlayerExtractor(BaseScraper):
             
             for language in languages_to_check:
                 try:
-                    urls = await self._extract_from_single_season(anime_slug, season_data, episode_number, language)
+                    urls = await self._extract_from_single_season(anime_slug, season_data, episode_number, language, config)
                     
                     for url in urls:
                         player_urls_with_language.append({
@@ -65,7 +65,7 @@ class AnimeSamaPlayerExtractor(BaseScraper):
                         })
                         
                 except Exception as e:
-                    logger.log("WARNING", f"Erreur extraction langue {language}: {e}")
+                    logger.warning(f"Erreur extraction langue {language}: {e}")
                     continue
             
             # Stocker en cache dans l'ordre STANDARD (pas réorganisé)
@@ -77,7 +77,7 @@ class AnimeSamaPlayerExtractor(BaseScraper):
                 "language_filter": language_filter,
                 "total_players": len(player_urls_with_language)
             }
-            await set_metadata_to_cache(cache_key, cache_data, ttl=settings.EPISODE_PLAYERS_TTL)
+            await set_metadata_to_cache(cache_key, cache_data, ttl=settings.EPISODE_TTL)
             logger.log("DATABASE", f"Cache set {cache_key} - {len(player_urls_with_language)} players")
             
             # Filtrer selon language_filter puis réorganiser si nécessaire
@@ -89,7 +89,7 @@ class AnimeSamaPlayerExtractor(BaseScraper):
             return filtered_urls
             
         except Exception as e:
-            logger.log("ERROR", f"Erreur mapping intelligent: {e}")
+            logger.error(f"Erreur mapping intelligent: {e}")
             return []
 
     def _filter_by_language(self, player_urls_with_language, language_filter):
@@ -141,7 +141,7 @@ class AnimeSamaPlayerExtractor(BaseScraper):
         
         return reordered_players
 
-    async def _extract_from_single_season(self, anime_slug: str, season_data: Dict[str, Any], episode_number: int, language: str) -> List[str]:
+    async def _extract_from_single_season(self, anime_slug: str, season_data: Dict[str, Any], episode_number: int, language: str, config: Optional[Dict[str, Any]] = None) -> List[str]:
         """Extrait les URLs de players pour un épisode depuis une saison et langue données avec mapping intelligent."""
         try:
             
@@ -175,7 +175,7 @@ class AnimeSamaPlayerExtractor(BaseScraper):
                         remaining_episodes -= sub_episode_count
                 
                 if not target_url:
-                    logger.log("WARNING", f"Impossible de mapper épisode {episode_number} en {language}")
+                    logger.warning(f"Impossible de mapper épisode {episode_number} en {language}")
                     return []
             
             
@@ -185,12 +185,12 @@ class AnimeSamaPlayerExtractor(BaseScraper):
             
             episode_urls = await self._extract_from_episodes_js(target_url, html, target_episode_number)
             
-            episode_urls = self._filter_excluded_domains(episode_urls)
+            episode_urls = self._filter_excluded_domains(episode_urls, config)
             
             return episode_urls
             
         except Exception as e:
-            logger.log("ERROR", f"Erreur extraction: {e}")
+            logger.error(f"Erreur extraction: {e}")
             return []
 
     async def _extract_from_episodes_js(self, season_url: str, html: str, episode_number: int) -> List[str]:
@@ -216,7 +216,7 @@ class AnimeSamaPlayerExtractor(BaseScraper):
             all_eps_matches = re.findall(r'var\s+eps\w*\s*=\s*\[[^\]]+\]', js_content)
             
             if not all_eps_matches:
-                logger.log("WARNING", f"Aucun array eps dans episodes.js")
+                logger.warning(f"Aucun array eps dans episodes.js")
                 return []
             
             
@@ -241,7 +241,7 @@ class AnimeSamaPlayerExtractor(BaseScraper):
             return player_urls
             
         except Exception as e:
-            logger.log("ERROR", f"Erreur extraction episodes.js: {e}")
+            logger.error(f"Erreur extraction episodes.js: {e}")
             return []
 
     async def _get_episode_count_from_url(self, season_url: str) -> int:
@@ -281,10 +281,11 @@ class AnimeSamaPlayerExtractor(BaseScraper):
         except Exception as e:
             return 0
 
-    def _filter_excluded_domains(self, urls: List[str]) -> List[str]:
-        """Filtre les URLs selon EXCLUDED_DOMAIN."""
-        from astream.utils.domain_filters import filter_excluded_domains
-        return filter_excluded_domains(urls)
+    def _filter_excluded_domains(self, urls: List[str], config: Optional[Dict[str, Any]] = None) -> List[str]:
+        """Filtre les URLs selon EXCLUDED_DOMAINS + exclusions utilisateur."""
+        from astream.utils.http.url_filters import filter_excluded_domains
+        user_excluded = config.get('userExcludedDomains', '') if config else ''
+        return filter_excluded_domains(urls, user_excluded)
     
     def _is_video_player_url(self, url: str) -> bool:
         """Vérifie si une URL est un player vidéo valide."""

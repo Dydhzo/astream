@@ -579,7 +579,8 @@
             position: relative;
         }
 
-        .modern-radio-option input[type="radio"] {
+        .modern-radio-option input[type="radio"],
+        .modern-radio-option input[type="checkbox"] {
             position: absolute;
             opacity: 0;
             cursor: pointer;
@@ -602,9 +603,22 @@
             background: var(--bg-card);
         }
 
-        .modern-radio-option input[type="radio"]:checked + .modern-radio-label {
+        .modern-radio-option input[type="radio"]:checked + .modern-radio-label,
+        .modern-radio-option input[type="checkbox"]:checked + .modern-radio-label {
             border-color: var(--primary);
             background: rgba(124, 58, 237, 0.05);
+        }
+
+        .modern-radio-label.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .modern-radio-option input:disabled + .modern-radio-label {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
         }
 
         .radio-icon {
@@ -903,8 +917,8 @@
             }
 
             .modern-radio-label {
-                padding: 1rem;
-                gap: 0.8rem;
+                padding: 0.875rem;
+                gap: 0.75rem;
             }
 
             .radio-icon {
@@ -1000,6 +1014,163 @@
 
         .error.show {
             display: flex;
+        }
+        
+        /* TMDB Configuration Styles */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .status-badge.success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+        }
+        
+        .status-badge.warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid var(--warning);
+            color: var(--warning);
+        }
+        
+        .config-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+        }
+        
+        .form-help {
+            display: block;
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+        
+        .form-help a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+        
+        .form-help a:hover {
+            text-decoration: underline;
+        }
+        
+        .toggle-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .toggle-item {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            transition: all 0.2s ease;
+        }
+        
+        .toggle-item:hover {
+            border-color: var(--border-hover);
+        }
+        
+        .toggle-label {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            cursor: pointer;
+            margin: 0;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 24px;
+            background: var(--border);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: var(--text-primary);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+        
+        input[type="checkbox"]:checked + .toggle-switch {
+            background: var(--primary);
+        }
+        
+        input[type="checkbox"]:checked + .toggle-switch::after {
+            transform: translateX(24px);
+        }
+        
+        .toggle-content {
+            flex: 1;
+        }
+        
+        .toggle-content h4 {
+            margin: 0 0 4px 0;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .toggle-content p {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+        
+        .toggle-label input[type="checkbox"] {
+            display: none;
+        }
+
+        /* Focus states améliorés pour accessibilité */
+        *:focus-visible {
+            outline: 3px solid var(--primary);
+            outline-offset: 3px;
+            box-shadow: 0 0 0 6px rgba(124, 58, 237, 0.2);
+        }
+
+        .btn:focus-visible,
+        .nav-item:focus-visible,
+        .modern-radio-label:focus-within,
+        .order-btn:focus-visible {
+            outline: 3px solid var(--primary);
+            outline-offset: 2px;
+            box-shadow: 0 0 0 6px rgba(124, 58, 237, 0.3);
         }
     </style>
 </head>
@@ -1122,7 +1293,7 @@
                                 <i data-lucide="film"></i>
                             </div>
                             <h3>Films</h3>
-                            <div class="season-number">998</div>
+                            <div class="season-number">990</div>
                             <p>Tous les films liés à l'anime regroupés</p>
                         </div>
                         
@@ -1131,7 +1302,7 @@
                                 <i data-lucide="star"></i>
                             </div>
                             <h3>Hors-série</h3>
-                            <div class="season-number">999</div>
+                            <div class="season-number">991</div>
                             <p>Épisodes hors-série</p>
                         </div>
                         
@@ -1334,15 +1505,129 @@
                     </div>
                     
                     <div class="problem-card">
+                        <h3><i data-lucide="database"></i> Configuration TMDB</h3>
+                        <p>TMDB (The Movie Database) améliore les métadonnées avec des images, descriptions et trailers.</p>
+                        
+                        {% if webConfig.tmdb.enabled %}
+                        <div class="success show">
+                            <i data-lucide="check-circle"></i>
+                            Clé API TMDB configurée par l'hôte
+                        </div>
+                        {% else %}
+                        <div class="error show">
+                            <i data-lucide="alert-triangle"></i>
+                            Aucune clé API TMDB configurée par l'hôte
+                        </div>
+                        {% endif %}
+                        
+                        <div class="info-note">
+                            <i data-lucide="lightbulb" style="color: var(--warning);"></i>
+                            <p><strong>Recommandé :</strong> Activez les fonctionnalités TMDB ci-dessous pour une meilleure expérience avec des métadonnées enrichies.</p>
+                        </div>
+                        
+                        <div style="margin-top: 2rem;"></div>
+                        
+                        <div class="config-section">
+                            <label class="form-label">
+                                <i data-lucide="key"></i>
+                                Votre clé API TMDB (optionnelle)
+                            </label>
+                            <input 
+                                type="password" 
+                                id="tmdbApiKey" 
+                                class="form-input" 
+                                placeholder="Collez votre clé API TMDB ici..."
+                                maxlength="50"
+                            >
+                            <small class="form-help">
+                                Si fournie, votre clé sera utilisée à la place de celle de l'hôte. 
+                                <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">Obtenir une clé API gratuite</a>
+                            </small>
+                        </div>
+                        
+                        {% if not webConfig.tmdb.enabled %}
+                        <div class="info-note" id="tmdbRequiredNote" style="border: 1px solid var(--warning); background: rgba(245, 158, 11, 0.1);">
+                            <i data-lucide="key" style="color: var(--warning);"></i>
+                            <p><strong>Clé API requise :</strong> Veuillez remplir votre clé API TMDB ci-dessus pour activer ces options.</p>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="modern-radio-group" id="tmdbOptionsGroup">
+                            <div class="modern-radio-option">
+                                <input type="checkbox" id="tmdbEnabled" {% if not webConfig.tmdb.enabled %}disabled{% endif %}>
+                                <label for="tmdbEnabled" class="modern-radio-label {% if not webConfig.tmdb.enabled %}disabled{% endif %}">
+                                    <div class="radio-icon">
+                                        <i data-lucide="image"></i>
+                                    </div>
+                                    <div class="radio-content">
+                                        <strong>Activer les métadonnées TMDB <span style="color: var(--warning); font-size: 0.8rem; font-weight: 500;">(Recommandé)</span></strong>
+                                        <span>Remplace les images et descriptions par celles de TMDB</span>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <div class="modern-radio-option">
+                                <input type="checkbox" id="tmdbEpisodeMapping" {% if not webConfig.tmdb.enabled %}disabled{% endif %}>
+                                <label for="tmdbEpisodeMapping" class="modern-radio-label {% if not webConfig.tmdb.enabled %}disabled{% endif %}">
+                                    <div class="radio-icon">
+                                        <i data-lucide="zap"></i>
+                                    </div>
+                                    <div class="radio-content">
+                                        <strong>Mapping intelligent des épisodes <span style="color: var(--warning); font-size: 0.8rem; font-weight: 500;">(Recommandé)</span></strong>
+                                        <span>Utilise les titres et descriptions d'épisodes TMDB</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="problem-card">
+                        <h3><i data-lucide="x-circle"></i> Exclusions Personnalisées</h3>
+                        <p>Ajoutez vos propres exclusions (domaines, mots-clés, formats) en plus de celles de l'hôte.</p>
+                        
+                        <div style="margin: 1rem 0;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem;">
+                                <input 
+                                    type="text" 
+                                    id="userExclusionInput"
+                                    placeholder="ex: domaine.fr, m3u8, 720p..." 
+                                    class="form-input"
+                                    style="flex: 1;"
+                                >
+                                <button 
+                                    type="button" 
+                                    id="addExclusionBtn"
+                                    class="btn btn-secondary"
+                                    style="padding: 8px 16px; white-space: nowrap;"
+                                >
+                                    <i data-lucide="plus"></i>
+                                    Ajouter
+                                </button>
+                            </div>
+                            
+                            <div id="userExclusionsList" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 40px; align-items: flex-start;">
+                                <span style="
+                                    background: var(--accent);
+                                    color: white;
+                                    padding: 6px 12px;
+                                    border-radius: 20px;
+                                    font-size: 0.85rem;
+                                    font-weight: 500;
+                                " id="noExclusionsText">Aucune exclusion personnalisée</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="problem-card">
                         <h3><i data-lucide="download"></i> Installation</h3>
                         <p>Cliquez sur le bouton ci-dessous pour installer l'addon dans Stremio avec vos préférences.</p>
                         
                         <div class="action-buttons">
-                            <button type="button" class="btn btn-primary large" id="installBtn">
+                            <button type="button" class="btn btn-primary" id="installBtn">
                                 <i data-lucide="download"></i>
                                 Installer sur Stremio
                             </button>
-                            <button type="button" class="btn btn-secondary large" id="copyBtn">
+                            <button type="button" class="btn btn-secondary" id="copyBtn">
                                 <i data-lucide="copy"></i>
                                 Copier le lien
                             </button>
@@ -1539,14 +1824,47 @@
                 config.languageOrder = Array.from(orderItems).map(item => item.dataset.lang).join(',');
             }
             
+            // Add TMDB configuration
+            const tmdbApiKey = document.getElementById('tmdbApiKey')?.value?.trim();
+            const tmdbEnabled = document.getElementById('tmdbEnabled')?.checked;
+            const tmdbEpisodeMapping = document.getElementById('tmdbEpisodeMapping')?.checked;
+            
+            if (tmdbApiKey) {
+                config.tmdbApiKey = tmdbApiKey;
+            }
+            
+            if (tmdbEnabled !== undefined) {
+                config.tmdbEnabled = tmdbEnabled;
+            }
+            
+            if (tmdbEpisodeMapping !== undefined) {
+                config.tmdbEpisodeMapping = tmdbEpisodeMapping;
+            }
+            
+            // Add user exclusions
+            if (userExclusions && userExclusions.length > 0) {
+                config.userExcludedDomains = userExclusions.join(',');
+            }
+            
             return config;
+        }
+
+        function isDefaultConfig(config) {
+            // Configuration par défaut : Tout pour langue, TMDB activé si disponible, mapping désactivé
+            return (
+                (config.language === 'Tout' || !config.language) &&
+                !config.languageOrder &&
+                !config.tmdbApiKey &&
+                (config.tmdbEnabled === true || config.tmdbEnabled === undefined) &&
+                (config.tmdbEpisodeMapping === false || config.tmdbEpisodeMapping === undefined)
+            );
         }
 
         function getManifestUrl() {
             const config = getConfig();
             const baseUrl = window.location.origin;
             
-            if (Object.keys(config).length === 1 && config.language === 'Tout') {
+            if (isDefaultConfig(config)) {
                 return `${baseUrl}/manifest.json`;
             }
             
@@ -1554,10 +1872,21 @@
             return `${baseUrl}/${configStr}/manifest.json`;
         }
 
+        function getStremioUrl() {
+            const config = getConfig();
+            const baseUrl = window.location.host;
+            
+            if (isDefaultConfig(config)) {
+                return `stremio://${baseUrl}/manifest.json`;
+            }
+            
+            const configStr = btoa(JSON.stringify(config));
+            return `stremio://${baseUrl}/${configStr}/manifest.json`;
+        }
+
         // Install button
         document.getElementById('installBtn').addEventListener('click', () => {
-            const manifestUrl = getManifestUrl();
-            const stremioUrl = `stremio://${manifestUrl}`;
+            const stremioUrl = getStremioUrl();
             window.open(stremioUrl, '_blank');
         });
 
@@ -1733,6 +2062,137 @@
                 }
             }, 3000);
         }
+
+        // TMDB Options Management
+        function toggleTmdbOptions() {
+            const tmdbApiKey = document.getElementById('tmdbApiKey')?.value?.trim();
+            const hasHostKey = {% if webConfig.tmdb.enabled %}true{% else %}false{% endif %};
+            const hasUserKey = tmdbApiKey && tmdbApiKey.length > 0;
+            const shouldEnable = hasHostKey || hasUserKey;
+            
+            const tmdbEnabled = document.getElementById('tmdbEnabled');
+            const tmdbEpisodeMapping = document.getElementById('tmdbEpisodeMapping');
+            const requiredNote = document.getElementById('tmdbRequiredNote');
+            
+            // Enable/disable checkboxes
+            if (tmdbEnabled) {
+                tmdbEnabled.disabled = !shouldEnable;
+                tmdbEnabled.parentElement.querySelector('.modern-radio-label').classList.toggle('disabled', !shouldEnable);
+            }
+            
+            if (tmdbEpisodeMapping) {
+                tmdbEpisodeMapping.disabled = !shouldEnable;
+                tmdbEpisodeMapping.parentElement.querySelector('.modern-radio-label').classList.toggle('disabled', !shouldEnable);
+            }
+            
+            // Show/hide required note
+            if (requiredNote) {
+                if (shouldEnable) {
+                    requiredNote.style.display = 'none';
+                } else {
+                    requiredNote.style.display = 'flex';
+                }
+            }
+        }
+        
+        // Initialize TMDB options state
+        document.addEventListener('DOMContentLoaded', function() {
+            const tmdbApiKeyInput = document.getElementById('tmdbApiKey');
+            if (tmdbApiKeyInput) {
+                tmdbApiKeyInput.addEventListener('input', toggleTmdbOptions);
+                toggleTmdbOptions(); // Initial check
+            }
+        });
+
+        // User Exclusions Management
+        let userExclusions = [];
+
+        function addUserExclusion() {
+            const input = document.getElementById('userExclusionInput');
+            const value = input.value.trim();
+            
+            if (!value) {
+                showToast('Veuillez saisir une exclusion', true);
+                return;
+            }
+            
+            if (value.includes(' ')) {
+                showToast('Espaces non autorisés dans les exclusions', true);
+                input.value = value.replace(/\s/g, ''); // Supprime les espaces
+                return;
+            }
+            
+            if (userExclusions.includes(value)) {
+                showToast('Cette exclusion existe déjà', true);
+                return;
+            }
+            
+            userExclusions.push(value);
+            input.value = '';
+            updateUserExclusionsDisplay();
+            showToast('Exclusion ajoutée');
+        }
+
+        function removeUserExclusion(exclusion) {
+            userExclusions = userExclusions.filter(e => e !== exclusion);
+            updateUserExclusionsDisplay();
+            showToast('Exclusion supprimée');
+        }
+
+        function updateUserExclusionsDisplay() {
+            const container = document.getElementById('userExclusionsList');
+            const noExclusionsText = document.getElementById('noExclusionsText');
+            
+            if (userExclusions.length === 0) {
+                container.innerHTML = '<span style="background: var(--accent); color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 500;" id="noExclusionsText">Aucune exclusion personnalisée</span>';
+                return;
+            }
+            
+            container.innerHTML = userExclusions.map(exclusion => `
+                <span style="
+                    background: var(--danger);
+                    color: white;
+                    padding: 6px 12px;
+                    border-radius: 20px;
+                    font-size: 0.85rem;
+                    font-weight: 500;
+                    font-family: monospace;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    cursor: pointer;
+                " onclick="removeUserExclusion('${exclusion}')">
+                    ${exclusion}
+                    <i data-lucide="x" style="width: 14px; height: 14px;"></i>
+                </span>
+            `).join('');
+            
+            // Re-initialize icons
+            lucide.createIcons();
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const input = document.getElementById('userExclusionInput');
+            const button = document.getElementById('addExclusionBtn');
+            
+            // Block spaces in input
+            input.addEventListener('keydown', function(e) {
+                if (e.key === ' ') {
+                    e.preventDefault();
+                    showToast('Espaces non autorisés', true);
+                    return false;
+                }
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addUserExclusion();
+                }
+            });
+            
+            // Add exclusion on button click
+            button.addEventListener('click', addUserExclusion);
+        });
+
     </script>
 </body>
 </html>

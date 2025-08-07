@@ -1,7 +1,7 @@
 import asyncio
 import time
 from typing import Dict, Optional
-from astream.config.app_settings import settings
+from astream.config.settings import settings
 from astream.utils.logger import logger
 
 
@@ -35,7 +35,6 @@ class RateLimiter:
                 await asyncio.sleep(wait_time)
             
             self._last_request_times[client_ip] = time.time()
-    
 
 
 rate_limiter = RateLimiter()

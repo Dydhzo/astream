@@ -4,9 +4,9 @@ import json
 import asyncio
 
 from astream.utils.logger import logger
-from astream.config.app_settings import database, settings
+from astream.config.settings import database, settings
 
-DATABASE_VERSION = "1.0"
+DATABASE_VERSION = "2.0"
 
 
 async def setup_database():
@@ -26,22 +26,22 @@ async def setup_database():
             logger.log("DATABASE", f"Migration v{current_version} → v{DATABASE_VERSION}")
 
             if settings.DATABASE_TYPE == "sqlite":
-                allowed_tables = {'scrape_lock', 'metadata'}
+                allowed_tables = {'scrape_lock', 'metadata', 'animesama', 'tmdb'}
                 tables = await database.fetch_all("SELECT name FROM sqlite_master WHERE type='table' AND name NOT IN ('db_version', 'sqlite_sequence')")
                 for table in tables:
                     table_name = table['name']
                     if table_name not in allowed_tables:
-                        logger.log("WARNING", f"Table non autorisée ignorée: {table_name}")
+                        logger.warning(f"Table non autorisée ignorée: {table_name}")
                         continue
                     if not table_name.replace('_', '').isalnum() or len(table_name) > 64:
-                        logger.log("WARNING", f"Table format nom invalide ignorée: {table_name}")
+                        logger.warning(f"Table format nom invalide ignorée: {table_name}")
                         continue
                     # Sécurisation supplémentaire : double validation du nom de table
                     if table_name in allowed_tables and table_name.replace('_', '').isalnum():
                         await database.execute("DROP TABLE IF EXISTS " + table_name)
                         logger.log("DATABASE", f"Table supprimée: {table_name}")
                     else:
-                        logger.log("ERROR", f"Tentative suppression table non autorisée: {table_name}")
+                        logger.error(f"Tentative suppression table non autorisée: {table_name}")
             else:
                 await database.execute("""
                     DO $$ DECLARE r RECORD;
@@ -59,13 +59,18 @@ async def setup_database():
             logger.log("DATABASE", f"Migration base de données vers v{DATABASE_VERSION} terminée")
 
         await database.execute("CREATE TABLE IF NOT EXISTS scrape_lock (lock_key TEXT PRIMARY KEY, instance_id TEXT, timestamp INTEGER, expires_at INTEGER)")
-        await database.execute("CREATE TABLE IF NOT EXISTS metadata (id TEXT PRIMARY KEY, data TEXT, timestamp REAL NOT NULL, expires_at REAL)")
+        
+        # Nouvelles tables de cache séparées
+        await database.execute("CREATE TABLE IF NOT EXISTS animesama (key TEXT PRIMARY KEY, content TEXT NOT NULL, created_at INTEGER, expires_at INTEGER)")
+        await database.execute("CREATE TABLE IF NOT EXISTS tmdb (key TEXT PRIMARY KEY, content TEXT NOT NULL, created_at INTEGER, expires_at INTEGER)")
         
         # Créer les index pour optimiser les performances
         await database.execute("CREATE INDEX IF NOT EXISTS idx_scrape_lock_key ON scrape_lock(lock_key)")
         await database.execute("CREATE INDEX IF NOT EXISTS idx_scrape_lock_expires ON scrape_lock(expires_at)")
-        await database.execute("CREATE INDEX IF NOT EXISTS idx_metadata_id ON metadata(id)")
-        await database.execute("CREATE INDEX IF NOT EXISTS idx_metadata_expires ON metadata(expires_at)")
+        await database.execute("CREATE INDEX IF NOT EXISTS idx_animesama_key ON animesama(key)")
+        await database.execute("CREATE INDEX IF NOT EXISTS idx_animesama_expires ON animesama(expires_at)")
+        await database.execute("CREATE INDEX IF NOT EXISTS idx_tmdb_key ON tmdb(key)")
+        await database.execute("CREATE INDEX IF NOT EXISTS idx_tmdb_expires ON tmdb(expires_at)")
         
 
         if settings.DATABASE_TYPE == "sqlite":
@@ -76,11 +81,13 @@ async def setup_database():
             await database.execute("PRAGMA cache_size=-2000")
             await database.execute("PRAGMA foreign_keys=ON")
 
+        # Nettoyage des caches expirés
         current_time = time.time()
-        await database.execute("DELETE FROM metadata WHERE expires_at IS NOT NULL AND expires_at < :current_time;", {"current_time": current_time})
+        await database.execute("DELETE FROM animesama WHERE expires_at IS NOT NULL AND expires_at < :current_time;", {"current_time": current_time})
+        await database.execute("DELETE FROM tmdb WHERE expires_at IS NOT NULL AND expires_at < :current_time;", {"current_time": current_time})
 
     except Exception as e:
-        logger.log("ERROR", f"Erreur configuration base de données: {e}")
+        logger.error(f"Erreur configuration base de données: {e}")
 
 
 async def cleanup_expired_locks():
@@ -90,19 +97,29 @@ async def cleanup_expired_locks():
             current_time = int(time.time())
             await database.execute("DELETE FROM scrape_lock WHERE expires_at < :current_time", {"current_time": current_time})
         except Exception as e:
-            logger.log("ERROR", f"Erreur nettoyage périodique verrous: {e}")
+            logger.error(f"Erreur nettoyage périodique verrous: {e}")
         await asyncio.sleep(60)
 
 
 async def get_metadata_from_cache(cache_id: str):
     """Récupère les métadonnées depuis le cache."""
     current_time = time.time()
-    query = "SELECT data FROM metadata WHERE id = :cache_id AND expires_at > :current_time"
+    
+    # Déterminer la table selon le préfixe
+    if cache_id.startswith("as:"):
+        table_name = "animesama"
+    elif cache_id.startswith("tmdb:"):
+        table_name = "tmdb"
+    else:
+        logger.warning(f"Préfixe de cache inconnu: {cache_id}")
+        return None
+    
+    query = f"SELECT content FROM {table_name} WHERE key = :cache_id AND expires_at > :current_time"
     result = await database.fetch_one(query, {"cache_id": cache_id, "current_time": current_time})
-    if not result or not result["data"]:
+    if not result or not result["content"]:
         return None
     try:
-        return json.loads(result["data"])
+        return json.loads(result["content"])
     except json.JSONDecodeError:
         return None
 
@@ -111,58 +128,75 @@ async def set_metadata_to_cache(cache_id: str, data, ttl: int = None):
     """Stocke les métadonnées dans le cache avec TTL intelligent."""
     current_time = time.time()
     
+    # Déterminer la table selon le préfixe
+    if cache_id.startswith("as:"):
+        table_name = "animesama"
+    elif cache_id.startswith("tmdb:"):
+        table_name = "tmdb"
+    else:
+        logger.warning(f"Préfixe de cache inconnu: {cache_id}")
+        return
+    
     # TTL intelligent si pas spécifié
     if ttl is None:
-        ttl = await _get_intelligent_ttl(cache_id)
+        ttl = await _calculate_context_aware_ttl(cache_id)
     
     expires_at = current_time + ttl
     if settings.DATABASE_TYPE == "sqlite":
-        query = "INSERT OR REPLACE INTO metadata (id, data, timestamp, expires_at) VALUES (:cache_id, :data, :timestamp, :expires_at)"
+        query = f"INSERT OR REPLACE INTO {table_name} (key, content, created_at, expires_at) VALUES (:cache_id, :content, :created_at, :expires_at)"
     else:
-        query = "INSERT INTO metadata (id, data, timestamp, expires_at) VALUES (:cache_id, :data, :timestamp, :expires_at) ON CONFLICT (id) DO UPDATE SET data = :data, timestamp = :timestamp, expires_at = :expires_at"
-    values = {"cache_id": cache_id, "data": json.dumps(data), "timestamp": current_time, "expires_at": expires_at}
+        query = f"INSERT INTO {table_name} (key, content, created_at, expires_at) VALUES (:cache_id, :content, :created_at, :expires_at) ON CONFLICT (key) DO UPDATE SET content = :content, created_at = :created_at, expires_at = :expires_at"
+    values = {"cache_id": cache_id, "content": json.dumps(data), "created_at": current_time, "expires_at": expires_at}
     await database.execute(query, values)
 
 
-async def _get_intelligent_ttl(cache_id: str) -> int:
+async def _calculate_context_aware_ttl(cache_id: str) -> int:
     """
-    Calcule le TTL intelligent basé sur le type de contenu et le planning.
+    Calcule le TTL en fonction du contexte et du type de contenu.
     
     Args:
-        cache_id: ID du cache (ex: "as:one-piece", "as:anime_planning", "as:homepage:content")
+        cache_id: ID du cache (ex: "as:one-piece", "as:planning", "as:homepage")
         
     Returns:
         TTL en secondes
     """
     try:
-        # Planning lui-même
-        if cache_id == "as:anime_planning":
-            return settings.PLANNING_CACHE_TTL
+        # TMDB data (TTL fixe long)
+        if cache_id.startswith("tmdb:"):
+            return settings.TMDB_TTL
         
-        # URLs players d'épisodes (TTL fixe)
-        if cache_id.startswith("as:") and ":players:" in cache_id:
-            return settings.EPISODE_PLAYERS_TTL
+        # Planning anime-sama
+        if cache_id == "as:planning":
+            return settings.PLANNING_TTL
+        
+        # Page d'accueil
+        if cache_id == "as:homepage":
+            return settings.DYNAMIC_LIST_TTL
+        
+        # URLs players d'épisodes (nouvelle structure)
+        if cache_id.startswith("as:") and ":s" in cache_id and "e" in cache_id:
+            return settings.EPISODE_TTL
+        
+        # Recherches
+        if cache_id.startswith("as:search:"):
+            return settings.DYNAMIC_LIST_TTL
         
         # Métadonnées d'anime individuels (TTL intelligent planning)
-        if cache_id.startswith("as:") and not any(x in cache_id for x in ["catalog", "search", "genre", "homepage", "filter", "players", "streams"]):
-            anime_slug = cache_id.replace("as:", "").split(":")[0]  # Ex: "as:one-piece:saison1" -> "one-piece"
-            from astream.scrapers.animesama_planning import get_smart_cache_ttl
+        if cache_id.startswith("as:") and not any(x in cache_id for x in ["search", "homepage", "planning", ":s", ":e"]):
+            anime_slug = cache_id.replace("as:", "")
+            from astream.scrapers.animesama.planning import get_smart_cache_ttl
             return await get_smart_cache_ttl(anime_slug)
         
-        # Catalogues, recherches, listes dynamiques
-        if any(x in cache_id for x in ["catalog", "search", "genre", "homepage", "filter"]):
-            return settings.DYNAMIC_LISTS_TTL
-        
-        # Autres données anime (fallback)
+        # Fallback pour anime-sama
         if cache_id.startswith("as:"):
-            return settings.EPISODE_PLAYERS_TTL
+            return settings.DYNAMIC_LIST_TTL
         
-        # Données non-anime (par défaut)
-        return settings.EPISODE_PLAYERS_TTL
+        # Fallback général
+        return settings.DYNAMIC_LISTS_TTL
         
     except Exception as e:
         logger.log("PERFORMANCE", f"Erreur calcul TTL intelligent '{cache_id}': {e}")
-        return settings.EPISODE_PLAYERS_TTL
+        return settings.EPISODE_TTL
 
 
 async def acquire_lock(lock_key: str, instance_id: str, duration: int = None) -> bool:
@@ -185,16 +219,16 @@ async def acquire_lock(lock_key: str, instance_id: str, duration: int = None) ->
                 deleted = await database.execute("DELETE FROM scrape_lock WHERE lock_key = :lock_key AND expires_at < :current_time", {"lock_key": lock_key, "current_time": current_time})
                 return await acquire_lock(lock_key, instance_id, duration) if deleted else False
             if existing_lock["instance_id"] == instance_id:
-                logger.log("DEBUG", f"Verrou acquis: {lock_key}")
+                logger.debug(f"Verrou acquis: {lock_key}")
                 return True
             else:
-                logger.log("DEBUG", f"Verrou déjà détenu par autre instance: {lock_key}")
+                logger.debug(f"Verrou déjà détenu par autre instance: {lock_key}")
                 return False
         
-        logger.log("DEBUG", f"Verrou acquis: {lock_key}")
+        logger.debug(f"Verrou acquis: {lock_key}")
         return True
     except Exception as e:
-        logger.log("WARNING", f"Échec acquisition verrou {lock_key}: {e}")
+        logger.warning(f"Échec acquisition verrou {lock_key}: {e}")
         return False
 
 
@@ -202,10 +236,10 @@ async def release_lock(lock_key: str, instance_id: str) -> bool:
     """Libère un verrou distribué pour la clé donnée."""
     try:
         await database.execute("DELETE FROM scrape_lock WHERE lock_key = :lock_key AND instance_id = :instance_id", {"lock_key": lock_key, "instance_id": instance_id})
-        logger.log("DEBUG", f"Verrou libéré: {lock_key}")
+        logger.debug(f"Verrou libéré: {lock_key}")
         return True
     except Exception as e:
-        logger.log("WARNING", f"Échec libération verrou {lock_key}: {e}")
+        logger.warning(f"Échec libération verrou {lock_key}: {e}")
         return False
 
 
@@ -224,10 +258,10 @@ class DistributedLock:
         while time.time() - start_time < timeout:
             self.acquired = await acquire_lock(self.lock_key, self.instance_id, self.duration)
             if self.acquired:
-                logger.log("DEBUG", f"Verrou acquis {self.lock_key} après {time.time() - start_time:.2f}s")
+                logger.debug(f"Verrou acquis {self.lock_key} après {time.time() - start_time:.2f}s")
                 return self
             
-            logger.log("DEBUG", f"Attente verrou {self.lock_key}...")
+            logger.debug(f"Attente verrou {self.lock_key}...")
             await asyncio.sleep(1)
             
         raise LockAcquisitionError(f"Impossible d'acquérir le verrou {self.lock_key} après {timeout}s")
@@ -247,4 +281,4 @@ async def teardown_database():
     try:
         await database.disconnect()
     except Exception as e:
-        logger.log("ERROR", f"Erreur fermeture base de données: {e}")
+        logger.error(f"Erreur fermeture base de données: {e}")

@@ -1,9 +1,9 @@
 from abc import ABC
 from typing import Any, Dict, Optional
 
-from astream.utils.http_client import HttpClient
+from astream.utils.http.client import HttpClient
 from astream.utils.logger import logger
-from astream.utils.rate_limiter import rate_limiter
+from astream.utils.http.rate_limiter import rate_limiter
 
 
 class BaseScraper(ABC):
@@ -42,7 +42,7 @@ class BaseScraper(ABC):
     
     async def _execute_request(self, method: str, url: str, **kwargs) -> Any:
         """Exécute la requête HTTP selon la méthode spécifiée."""
-        method_lower = method.lower()
+        method_lower = method.lower()  # Normaliser la méthode HTTP
         
         if method_lower == 'get':
             return await self.client.get(url, **kwargs)

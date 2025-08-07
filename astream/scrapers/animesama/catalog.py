@@ -3,12 +3,12 @@ import asyncio
 from urllib.parse import quote
 from bs4 import BeautifulSoup
 
-from astream.utils.http_client import HttpClient
+from astream.utils.http.client import HttpClient
 from astream.utils.logger import logger
-from astream.utils.base_scraper import BaseScraper
-from astream.utils.database import get_metadata_from_cache, set_metadata_to_cache
-from astream.config.app_settings import settings
-from astream.scrapers.animesama_parser import (
+from astream.scrapers.base import BaseScraper
+from astream.utils.data.database import get_metadata_from_cache, set_metadata_to_cache
+from astream.config.settings import settings
+from astream.scrapers.animesama.parser import (
     parse_anime_card,
     parse_pepites_card,
     parse_recent_episodes_card,
@@ -22,11 +22,11 @@ class AnimeSamaCatalog(BaseScraper):
     
     def __init__(self, client: HttpClient):
         super().__init__(client, settings.ANIMESAMA_URL)
-        self._detect_all_languages_in_catalog = True
+        self._detect_all_languages_in_catalog = True  # Option pour détection des langues
     
     async def get_homepage_content(self) -> List[Dict[str, Any]]:
         """Récupère le contenu de la page d'accueil anime-sama."""
-        cache_key = "as:homepage:content"
+        cache_key = "as:homepage"
         cached_data = await get_metadata_from_cache(cache_key)
         if cached_data:
             logger.log("DATABASE", f"Cache hit {cache_key} - Contenu homepage récupéré")
@@ -40,8 +40,8 @@ class AnimeSamaCatalog(BaseScraper):
             response.raise_for_status()
             
             soup = BeautifulSoup(response.text, 'html.parser')
-            all_anime = []
-            seen_slugs = set()
+            all_anime = []  # Liste finale des animes
+            seen_slugs = set()  # Éviter les doublons
             
             recent_episodes = await self._scrape_recent_episodes(soup, seen_slugs)
             all_anime.extend(recent_episodes)
@@ -59,7 +59,7 @@ class AnimeSamaCatalog(BaseScraper):
             all_anime.extend(pepites)
             logger.log("ANIMESAMA", f"Découvrez des pépites: {len(pepites)} items")
             
-            logger.log("INFO", f"Total homepage: {len(all_anime)} anime/films récupérés")
+            logger.info(f"Total homepage: {len(all_anime)} anime/films récupérés")
             
             if self._detect_all_languages_in_catalog and all_anime:
                 all_anime = await self._enhance_anime_with_languages(all_anime)
@@ -71,14 +71,12 @@ class AnimeSamaCatalog(BaseScraper):
             return all_anime
             
         except Exception as e:
-            logger.log("ERROR", f"ANIMESAMA: Échec récupération homepage: {e}")
+            logger.error(f"ANIMESAMA: Échec récupération homepage: {e}")
             return []
 
     async def search_anime(self, query: str, language: Optional[str] = None, genre: Optional[str] = None) -> List[Dict[str, Any]]:
         """Recherche des anime sur anime-sama."""
         cache_key = f"as:search:{query}"
-        if genre:
-            cache_key += f":genre-{genre}"
         
         cached_data = await get_metadata_from_cache(cache_key)
         if cached_data:
@@ -104,7 +102,7 @@ class AnimeSamaCatalog(BaseScraper):
                     
                     search_url += f"&type[]={content_type}"
                     
-                    logger.log("DEBUG", f"Recherche {content_type.lower()}: {search_url}")
+                    logger.debug(f"Recherche {content_type.lower()}: {search_url}")
                     response = await self._rate_limited_request('get', search_url)
                     response.raise_for_status()
                     
@@ -118,22 +116,26 @@ class AnimeSamaCatalog(BaseScraper):
                             all_results.append(anime_data)
                 
                 except Exception as e:
-                    logger.log("WARNING", f"ANIMESAMA: Erreur recherche {content_type}: {e}")
+                    logger.warning(f"ANIMESAMA: Erreur recherche {content_type}: {e}")
                     continue
             
-            logger.log("INFO", f"Trouvé {len(all_results)} résultats pour '{query}'")
+            logger.info(f"Trouvé {len(all_results)} résultats pour '{query}'")
             
             if all_results and self._detect_all_languages_in_catalog:
                 all_results = await self._enhance_anime_with_languages(all_results)
             
-            cache_data = {"results": all_results, "query": query, "total_found": len(all_results)}
-            await set_metadata_to_cache(cache_key, cache_data)
-            logger.log("DATABASE", f"Cache set {cache_key} - {len(all_results)} résultats")
+            # Ne mettre en cache que si on a des résultats
+            if all_results:
+                cache_data = {"results": all_results, "query": query, "total_found": len(all_results)}
+                await set_metadata_to_cache(cache_key, cache_data)
+                logger.log("DATABASE", f"Cache set {cache_key} - {len(all_results)} résultats")
+            else:
+                logger.log("DATABASE", f"Pas de cache pour {cache_key} - 0 résultats")
             
             return all_results
             
         except Exception as e:
-            logger.log("ERROR", f"ANIMESAMA: Échec recherche anime: {e}")
+            logger.error(f"ANIMESAMA: Échec recherche anime: {e}")
             return []
 
     async def _enhance_anime_with_languages(self, anime: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -152,13 +154,13 @@ class AnimeSamaCatalog(BaseScraper):
             return enhanced_anime
             
         except Exception as e:
-            logger.log("WARNING", f"ANIMESAMA: Erreur enrichissement langues: {e}")
+            logger.warning(f"ANIMESAMA: Erreur enrichissement langues: {e}")
             return anime
 
     async def _detect_all_languages_for_anime(self, anime_slug: str) -> List[str]:
         """Détecte toutes les langues disponibles pour un anime depuis sa page détaillée."""
         try:
-            from astream.scrapers.animesama_parser import parse_languages_from_html
+            from astream.scrapers.animesama.parser import parse_languages_from_html
             
             response = await self._internal_request('get', f"{self.base_url}/catalogue/{anime_slug}/")
             response.raise_for_status()
@@ -188,7 +190,7 @@ class AnimeSamaCatalog(BaseScraper):
             return anime
             
         except Exception as e:
-            logger.log("WARNING", f"ANIMESAMA: Erreur scraping derniers épisodes: {e}")
+            logger.warning(f"ANIMESAMA: Erreur scraping derniers épisodes: {e}")
             return []
     
     async def _scrape_new_releases(self, soup: BeautifulSoup, seen_slugs: set) -> List[Dict[str, Any]]:
@@ -210,7 +212,7 @@ class AnimeSamaCatalog(BaseScraper):
             return anime
             
         except Exception as e:
-            logger.log("WARNING", f"ANIMESAMA: Erreur scraping nouveaux contenus: {e}")
+            logger.warning(f"ANIMESAMA: Erreur scraping nouveaux contenus: {e}")
             return []
     
     async def _scrape_classics(self, soup: BeautifulSoup, seen_slugs: set) -> List[Dict[str, Any]]:
@@ -232,7 +234,7 @@ class AnimeSamaCatalog(BaseScraper):
             return anime
             
         except Exception as e:
-            logger.log("WARNING", f"ANIMESAMA: Erreur scraping classiques: {e}")
+            logger.warning(f"ANIMESAMA: Erreur scraping classiques: {e}")
             return []
     
     async def _scrape_pepites(self, soup: BeautifulSoup, seen_slugs: set) -> List[Dict[str, Any]]:
@@ -254,5 +256,5 @@ class AnimeSamaCatalog(BaseScraper):
             return anime
             
         except Exception as e:
-            logger.log("WARNING", f"ANIMESAMA: Erreur scraping pépites: {e}")
+            logger.warning(f"ANIMESAMA: Erreur scraping pépites: {e}")
             return []
