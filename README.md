@@ -200,17 +200,10 @@ Toutes les variables disponibles dans le fichier `.env` :
 
 ## Performance
 
-### 📊 Métriques
-
-- **Temps de réponse catalogue** : < 500ms (avec cache)
-- **Résolution stream** : 1-3 secondes
-- **Consommation mémoire** : ~100MB
-- **Support concurrent** : 100+ utilisateurs simultanés
-
 ### ⚡ Optimisations
 
 - **Cache multiniveau** : Mémoire + Base de données
-- **Scraping parallèle** : Traitement concurrent des saisons
+- **Scraping parallèle** : Traitement parallèle des saisons
 - **Headers dynamiques** : Rotation User-Agent automatique
 - **Verrouillage distribué** : Évite les doublons entre instances
 
@@ -306,3 +299,4 @@ Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de 
 <p align="center">
   Fait avec ❤️ pour la communauté anime française
 </p>
+
