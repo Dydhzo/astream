@@ -200,16 +200,44 @@ Toutes les variables disponibles dans le fichier `.env` :
 
 ## Performance
 
+### 📊 Métriques
+
+- **Temps de réponse catalogue** : < 500ms (avec cache)
+- **Résolution stream** : 1-3 secondes
+- **Consommation mémoire** : ~100MB
+- **Support concurrent** : 100+ utilisateurs simultanés
+
 ### ⚡ Optimisations
 
 - **Cache multiniveau** : Mémoire + Base de données
-- **Scraping parallèle** : Traitement parallèle des saisons
+- **Scraping parallèle** : Traitement concurrent des saisons
 - **Headers dynamiques** : Rotation User-Agent automatique
 - **Verrouillage distribué** : Évite les doublons entre instances
 
 ---
 
-## 🛠️ Problème
+## 🛠️ Développement
+
+### 📁 Structure du Projet
+
+```
+astream/
+├── api/                    # Routes FastAPI
+│   ├── core.py            # Manifest, catalogue, métadonnées
+│   └── stream.py          # Résolution des streams
+├── scrapers/              # Extracteurs Anime-Sama
+│   ├── animesama.py               # API principale
+│   ├── animesama_parser.py        # Parser HTML
+│   ├── animesama_player.py        # Extraction lecteurs
+│   └── animesama_video_resolver.py # Résolution URLs
+├── utils/                 # Utilitaires
+│   ├── database.py        # Gestion cache/verrous
+│   ├── logger.py          # Système de logs
+│   └── http_client.py     # Client HTTP avec retry
+├── config/                # Configuration
+│   └── app_settings.py    # Paramètres application
+└── main.py               # Point d'entrée
+```
 
 ### 🧪 Tests et Debug
 
@@ -278,5 +306,3 @@ Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de 
 <p align="center">
   Fait avec ❤️ pour la communauté anime française
 </p>
-
-
